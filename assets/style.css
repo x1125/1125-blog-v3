@@ -136,6 +136,7 @@ pre.mail-graphics {
 }
 
 .update-section .diff-content {
+    min-height: 200px;
     padding: .75rem;
     float: left !important;
     width: 100%;
