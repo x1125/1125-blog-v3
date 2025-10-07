@@ -40,16 +40,16 @@ aside.menu p.menu-label span.collapsable {
 }
 
 aside.menu p.menu-label span.collapsable i {
-    vertical-align: middle;
+    vertical-align: text-bottom;
     fill: #fff;
     transition: transform 0.3s;
-    transform: rotate(-180deg);
+    transform: rotate(0deg) translateY(-6px);
     height: 12px;
     width: 12px;
 }
 
 aside.menu p.menu-label span.collapsable.collapsed > i {
-    transform: rotate(0deg);
+    transform: rotate(-180deg) translateY(0);
 }
 
 .custom-box {
