@@ -1,5 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
+use tide::{Body, StatusCode};
+use tide::Response;
 
 #[derive(Debug, Clone)]
 pub struct GeneratorError {
@@ -18,4 +20,11 @@ impl GeneratorError {
             message,
         };
     }
+}
+
+pub fn http_error(status: StatusCode, body: impl Into<Body>) -> Response {
+    let response = Response::builder(status)
+        .body(body)
+        .build();
+    return response;
 }

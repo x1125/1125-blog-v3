@@ -1,7 +1,8 @@
 use git2::Repository;
-use tide::{Request, Response};
+use tide::{Request, Response, StatusCode};
 use tide::prelude::*;
-use crate::blog::config::Config;
+use crate::blog::config::{Config, DEFAULT_BRANCH};
+use crate::blog::error::http_error;
 
 #[derive(Debug, Deserialize)]
 struct Commit {
@@ -14,30 +15,30 @@ pub async fn ctrl_commit(mut req: Request<Config>) -> tide::Result {
     let repo_path = req.state().get_input_path();
     let repo = match Repository::open(repo_path) {
         Ok(repo) => repo,
-        Err(e) => panic!("failed to open: {}", e),
+        Err(e) => {
+            return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e)));
+        },
     };
+
     let signature = match repo.signature() {
         Ok(signature) => signature,
         Err(e) => {
-            let response = Response::builder(500)
-                .body(format!("Missing signature: {}", e))
-                .build();
-            return Ok(response);
+            return Ok(http_error(StatusCode::InternalServerError, format!("missing signature: {}", e)));
         }
     };
+
     let mut index = repo.index().unwrap();
     let tree = match index.write_tree() {
         Ok(tree) => tree,
         Err(e) => {
-            let response = Response::builder(500)
-                .body(format!("Could not write index to tree: {}", e))
-                .build();
-            return Ok(response);
+            return Ok(http_error(StatusCode::InternalServerError,format!("could not write index to tree: {}", e)));
         }
     };
-    let master = repo.revparse_single("master").unwrap();
-    let commit = master.as_commit().unwrap();
-    match repo.commit(
+
+    let branch = repo.revparse_single(DEFAULT_BRANCH).unwrap();
+    let commit = branch.as_commit().unwrap();
+
+    if let Err(e) = repo.commit(
         Some("HEAD"),
         &signature,
         &signature,
@@ -45,16 +46,8 @@ pub async fn ctrl_commit(mut req: Request<Config>) -> tide::Result {
         &repo.find_tree(tree).unwrap(),
         &[&commit],
     ) {
-        Ok(_) => {}
-        Err(e) => {
-            let response = Response::builder(500)
-                .body(format!("{}", e.message()))
-                .build();
-            return Ok(response);
-        }
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to push to remote: {}", e.message())));
     }
 
-    let response = Response::builder(204)
-        .build();
-    Ok(response)
+    Ok(Response::builder(StatusCode::NoContent).build())
 }

@@ -2,6 +2,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 pub const HIGHLIGHT_THEME: &str = "base16-ocean.dark";
+pub const DEFAULT_BRANCH: &str = "master";
 
 #[derive(Debug, Clone)]
 pub struct ConfigError {
@@ -12,15 +13,16 @@ pub struct ConfigError {
 pub struct Config {
     pub working_path: String,
     // FIXME: leak is required to satisfy 'static lifetime of State
-    pub token: &'static str,
+    pub token: String,
 }
 
 impl Config {
     pub fn new() -> Result<Self, ConfigError> {
         let working_path = path_from_env("WORKING_PATH")?;
+        let token = path_from_env("TOKEN")?;
         let config = Config {
             working_path,
-            token: "",
+            token,
         };
         Ok(config)
     }

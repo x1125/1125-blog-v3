@@ -1,8 +1,9 @@
 use std::fs;
 use std::path::Path;
-use tide::{Request, Response};
+use tide::{Request, Response, StatusCode};
 use tide::prelude::*;
 use crate::blog::config::Config;
+use crate::blog::error::http_error;
 
 #[derive(Debug, Deserialize)]
 struct DeleteFile {
@@ -15,24 +16,16 @@ pub async fn ctrl_delete(mut req: Request<Config>) -> tide::Result {
     let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
     let path = Path::new(path_str.as_str());
     if !path.exists() {
-        let response = Response::builder(404)
-            .build();
-        return Ok(response);
+        return Ok(Response::builder(StatusCode::NotFound).build());
     }
 
-    let f = if path.is_dir() {
+    if let Err(e) = if path.is_dir() {
         fs::remove_dir(path)
     } else {
         fs::remove_file(path)
-    };
-    if f.is_err() {
-        let response = Response::builder(500)
-            .body(format!("{}", f.err().unwrap()))
-            .build();
-        return Ok(response);
+    } {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to remove: {}", e)));
     }
 
-    let response = Response::builder(204)
-        .build();
-    Ok(response)
+    Ok(Response::builder(StatusCode::NoContent).build())
 }

@@ -1,8 +1,9 @@
 use std::fs;
 use std::path::Path;
-use tide::{Request, Response};
+use tide::{Request, Response, StatusCode};
 use tide::prelude::*;
 use crate::blog::config::Config;
+use crate::blog::error::http_error;
 
 #[derive(Debug, Deserialize)]
 struct NewFolder {
@@ -15,20 +16,12 @@ pub async fn ctrl_new_folder(mut req: Request<Config>) -> tide::Result {
     let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), folder);
     let path = Path::new(path_str.as_str());
     if path.exists() {
-        let response = Response::builder(409)
-            .build();
-        return Ok(response);
+        return Ok(Response::builder(StatusCode::Conflict).build());
     }
 
-    let f = fs::create_dir(path);
-    if f.is_err() {
-        let response = Response::builder(500)
-            .body(format!("{}", f.err().unwrap()))
-            .build();
-        return Ok(response);
+    if let Err(e) = fs::create_dir(path) {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to create dir: {}", e)));
     }
 
-    let response = Response::builder(204)
-        .build();
-    Ok(response)
+    Ok(Response::builder(StatusCode::NoContent).build())
 }

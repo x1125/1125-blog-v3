@@ -2,6 +2,7 @@ pub mod auth_middleware;
 pub mod config;
 pub mod ctrl_commit;
 pub mod ctrl_generate;
+pub mod ctrl_push_remote;
 pub mod ctrl_delete;
 pub mod ctrl_get_changes;
 pub mod ctrl_get_files;

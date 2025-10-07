@@ -3,7 +3,8 @@ use crate::blog::utils::{Change, Diff, get_changes, get_diffs};
 use serde_json::json;
 use serde::Serialize;
 use tide::http::mime;
-use tide::{Request, Response};
+use tide::{Request, Response, StatusCode};
+use crate::blog::error::http_error;
 
 use crate::Config;
 
@@ -17,7 +18,9 @@ pub async fn ctrl_get_changes(req: Request<Config>) -> tide::Result {
     let path = req.state().get_input_path();
     let repo = match Repository::open(path) {
         Ok(repo) => repo,
-        Err(e) => panic!("failed to open: {}", e),
+        Err(e) => {
+            return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e.message())));
+        }
     };
     let change_response = ChangeResponse{
         changes: get_changes(&repo),
@@ -25,9 +28,8 @@ pub async fn ctrl_get_changes(req: Request<Config>) -> tide::Result {
     };
     let json_payload = json!(change_response);
 
-    let response = Response::builder(200)
+    Ok(Response::builder(StatusCode::Ok)
         .body(json_payload)
         .content_type(mime::JSON)
-        .build();
-    Ok(response)
+        .build())
 }

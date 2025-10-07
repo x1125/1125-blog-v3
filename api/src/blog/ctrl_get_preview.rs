@@ -4,15 +4,12 @@ use comrak::plugins::syntect::SyntectAdapter;
 use tera::Tera;
 use tide::http::mime;
 use tide::prelude::*;
-use tide::{Request, Response};
+use tide::{Request, Response, StatusCode};
+use crate::blog::error::http_error;
 
 #[derive(Debug, Deserialize)]
 struct PreviewData {
     content: String,
-}
-
-fn http_error(msg: String) -> Result<tide::Response, tide::Error> {
-    return Ok(Response::builder(500).body(msg).build());
 }
 
 pub async fn ctrl_get_preview(mut req: Request<Config>) -> tide::Result {
@@ -21,7 +18,7 @@ pub async fn ctrl_get_preview(mut req: Request<Config>) -> tide::Result {
     let tera = match Tera::new(format!("{}/templates/*.html", req.state().working_path).as_str()) {
         Ok(t) => t,
         Err(e) => {
-            return http_error(format!("Unable to generate config: {:?}", e));
+            return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate config: {:?}", e)));
         }
     };
 
@@ -37,30 +34,26 @@ pub async fn ctrl_get_preview(mut req: Request<Config>) -> tide::Result {
     let post = match generator.new_post(String::from("preview"), &mut content_mut) {
         Ok(post) => post,
         Err(e) => {
-            return http_error(format!(
-                "unable to generate post preview: {}",
-                e.to_string()
-            ));
+            return Ok(http_error(StatusCode::InternalServerError, format!(
+                "unable to generate post preview: {}", e)));
         }
     };
 
     let html = match generator.generate_preview(&mut content_mut) {
         Ok(html) => html,
         Err(e) => {
-            return http_error(e.message);
+            return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate preview: {}", e.message)));
         }
     };
 
     let posts: Vec<Post> = vec![post];
     generator.generate_preview_images(&posts);
-    let e = generator.remove_exif_data(&posts);
-    if e.is_err() {
-        return http_error(e.unwrap_err().message);
+    if let Err(e) = generator.remove_exif_data(&posts) {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to remove exif data: {}", e.message)));
     }
 
-    let response = Response::builder(200)
+    Ok(Response::builder(StatusCode::Ok)
         .body(html)
         .content_type(mime::HTML)
-        .build();
-    Ok(response)
+        .build())
 }

@@ -2,10 +2,11 @@ use std::fs;
 use std::path::Path;
 use git2::Repository;
 use git2::build::CheckoutBuilder;
-use tide::{Body, Request, Response, StatusCode};
-use crate::blog::config::Config;
+use tide::{Request, Response, StatusCode};
+use crate::blog::config::{Config, DEFAULT_BRANCH};
 use crate::blog::utils::{Change, get_changes};
 use tide::prelude::*;
+use crate::blog::error::http_error;
 
 #[derive(Debug, Deserialize)]
 struct RevertFile {
@@ -18,7 +19,9 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
     let repo_path = req.state().get_input_path();
     let repo = match Repository::open(repo_path) {
         Ok(repo) => repo,
-        Err(e) => panic!("failed to open: {}", e),
+        Err(e) => {
+            return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e.message())));
+        },
     };
     let mut index = repo.index().unwrap();
 
@@ -31,9 +34,7 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
     }
 
     if change.is_none() {
-        let response = Response::builder(StatusCode::NotFound)
-            .build();
-        return Ok(response);
+        return Ok(Response::builder(StatusCode::NotFound).build());
     }
 
     let change = change.unwrap();
@@ -43,8 +44,8 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
         if !path.exists() {
             return Ok(http_error(StatusCode::InternalServerError, format!("{} was not found", path_str)));
         }
-        if let Err(err) = index.remove_path(Path::new(&file)) {
-            return Ok(http_error(StatusCode::InternalServerError, format!("could not unstage: {}", err)));
+        if let Err(e) = index.remove_path(Path::new(&file)) {
+            return Ok(http_error(StatusCode::InternalServerError, format!("could not unstage: {}", e)));
         }
     } else if change.change == "Renamed" {
         let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
@@ -60,43 +61,35 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
             return Ok(http_error(StatusCode::InternalServerError, format!("{} already exists", old_path_str)));
         }
 
-        if let Err(err) = fs::rename(path, old_path) {
-            return Ok(http_error(StatusCode::InternalServerError, format!("could not rename: {}", err)));
+        if let Err(e) = fs::rename(path, old_path) {
+            return Ok(http_error(StatusCode::InternalServerError, format!("could not rename: {}", e)));
         }
     } else if change.change == "Deleted" {
         let mut checkout_builder = CheckoutBuilder::new();
         checkout_builder.path(Path::new(file.as_str()));
         checkout_builder.recreate_missing(true);
 
-        if let Err(err) = repo.checkout_head(Some(&mut checkout_builder)) {
-            return Ok(http_error(StatusCode::InternalServerError, format!("Unable to checkout file: {}", err)));
+        if let Err(e) = repo.checkout_head(Some(&mut checkout_builder)) {
+            return Ok(http_error(StatusCode::InternalServerError, format!("Unable to checkout file: {}", e)));
         }
     } else if change.change == "Modified" {
-        let master = repo.revparse_single("master").unwrap();
-        let commit = master.as_commit().unwrap();
+        let branch = repo.revparse_single(DEFAULT_BRANCH).unwrap();
+        let commit = branch.as_commit().unwrap();
         let tree = commit.tree().unwrap();
         match tree.get_name(file.as_str()) {
             Some(tree_entry) => {
                 let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
                 let path = Path::new(path_str.as_str());
                 if !path.exists() {
-                    let response = Response::builder(409)
-                        .build();
-                    return Ok(response);
+                    return Ok(Response::builder(StatusCode::Conflict).build());
                 }
 
-                let f = fs::write(path, tree_entry.to_object(&repo).unwrap().as_blob().unwrap().content());
-                if f.is_err() {
-                    let response = Response::builder(500)
-                        .body(format!("{}", f.err().unwrap()))
-                        .build();
-                    return Ok(response);
+                if let Err(e) = fs::write(path, tree_entry.to_object(&repo).unwrap().as_blob().unwrap().content()) {
+                    return Ok(http_error(StatusCode::InternalServerError, format!("unable to write: {}", e)));
                 }
             }
             None => {
-                let response = Response::builder(StatusCode::NotFound)
-                    .build();
-                return Ok(response);
+                return Ok(Response::builder(StatusCode::NotFound).build());
             }
         };
     } else if change.change == "Untracked" {
@@ -110,12 +103,12 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
 
         // add happened
         if path.is_dir() {
-            if let Err(err) = fs::remove_dir(path) {
-                return Ok(http_error(StatusCode::InternalServerError, format!("could not delete: {}", err)));
+            if let Err(e) = fs::remove_dir(path) {
+                return Ok(http_error(StatusCode::InternalServerError, format!("could not delete: {}", e)));
             }
         } else {
-            if let Err(err) = fs::remove_file(path) {
-                return Ok(http_error(StatusCode::InternalServerError, format!("could not delete: {}", err)));
+            if let Err(e) = fs::remove_file(path) {
+                return Ok(http_error(StatusCode::InternalServerError, format!("could not delete: {}", e)));
             }
         }
     } else {
@@ -123,21 +116,12 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
     }
 
     // update index
-    if let Err(err) = index.update_all(["*"].iter(), None) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to update index: {}", err)));
+    if let Err(e) = index.update_all(["*"].iter(), None) {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to update index: {}", e)));
     }
-    if let Err(err) = index.write() {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to write index: {}", err)));
+    if let Err(e) = index.write() {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to write index: {}", e)));
     }
 
-    let response = Response::builder(204)
-        .build();
-    return Ok(response);
-}
-
-fn http_error(status: StatusCode, body: impl Into<Body>) -> Response {
-    let response = Response::builder(status)
-        .body(body)
-        .build();
-    return response;
+    Ok(Response::builder(StatusCode::NoContent).build())
 }

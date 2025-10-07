@@ -4,6 +4,7 @@ use std::{borrow::BorrowMut, path::PathBuf};
 use std::path::Path;
 use regex::Regex;
 use walkdir::WalkDir;
+use crate::blog::config::DEFAULT_BRANCH;
 
 #[derive(Debug, Serialize)]
 pub struct File {
@@ -169,7 +170,7 @@ pub fn get_diffs(repo: &Repository) -> Vec<Diff> {
     diff_options.include_untracked(true);
     diff_options.include_typechange(true);
 
-    let reference = repo.find_reference("refs/heads/master").unwrap();
+    let reference = repo.find_reference(format!("refs/heads/{}", DEFAULT_BRANCH).as_str()).unwrap();
 
     add_diff(&mut diffs, &repo
         .diff_tree_to_workdir_with_index(Some(&reference.peel_to_commit().unwrap().tree().unwrap()), Some(&mut diff_options)).unwrap());

@@ -1,13 +1,16 @@
 use comrak::plugins::syntect::SyntectAdapter;
 use tera::Tera;
-use tide::{Request, Response};
+use tide::{Request, Response, StatusCode};
 use crate::blog::config::{Config, HIGHLIGHT_THEME};
+use crate::blog::error::http_error;
 use crate::blog::generator::Generator;
 
 pub async fn ctrl_generate(req: Request<Config>) -> tide::Result {
     let tera = match Tera::new(format!("{}/templates/*.html", req.state().working_path).as_str()) {
         Ok(t) => t,
-        Err(e) => panic!("Unable to generate config: {:?}", e),
+        Err(e) => {
+            return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate config: {}", e)));
+        },
     };
 
     let adapter = SyntectAdapter::new(HIGHLIGHT_THEME);
@@ -19,13 +22,11 @@ pub async fn ctrl_generate(req: Request<Config>) -> tide::Result {
     );
     generator.log_to_buffer();
 
-    match generator.generate() {
-        Ok(_) => {}
-        Err(e) => panic!("Unable to generate file: {:?}", e.message),
+    if let Err(e) = generator.generate() {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate file: {}", e.message)));
     }
 
-    let response = Response::builder(200)
+    Ok(Response::builder(StatusCode::Ok)
         .body(generator.get_log_result())
-        .build();
-    Ok(response)
+        .build())
 }

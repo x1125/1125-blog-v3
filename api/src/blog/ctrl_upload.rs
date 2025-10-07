@@ -2,7 +2,8 @@ use crate::blog::config::Config;
 use std::fs;
 use std::path::Path;
 use tide::prelude::*;
-use tide::{Request, Response};
+use tide::{Request, Response, StatusCode};
+use crate::blog::error::http_error;
 
 #[derive(Debug, Deserialize)]
 struct UploadData {
@@ -28,41 +29,29 @@ pub async fn ctrl_upload(mut req: Request<Config>) -> tide::Result {
     );
     let path = Path::new(path_str.as_str());
     if path.exists() {
-        let response = Response::builder(409).build();
-        return Ok(response);
+        return Ok(Response::builder(StatusCode::Conflict).build());
     }
 
     match path.parent() {
         Some(p) => {
             if !p.exists() {
-                let f = fs::create_dir(p);
-                if f.is_err() {
-                    let response = Response::builder(500)
-                        .body(format!("{}", f.err().unwrap()))
-                        .build();
-                    return Ok(response);
+                if let Err(e) = fs::create_dir(p) {
+                    return Ok(http_error(StatusCode::InternalServerError, format!("unable to create dir: {}", e)));
                 }
             }
         }
         None => {
-            let response = Response::builder(500).body("Invalid directory").build();
-            return Ok(response);
+            return Ok(http_error(StatusCode::InternalServerError, "Invalid directory"));
         }
     }
 
     if size != decoded_content.len() as i64 {
-        let response = Response::builder(422).build();
-        return Ok(response);
+        return Ok(Response::builder(StatusCode::UnprocessableEntity).build());
     }
 
-    let f = fs::write(path, decoded_content);
-    if f.is_err() {
-        let response = Response::builder(500)
-            .body(format!("{}", f.err().unwrap()))
-            .build();
-        return Ok(response);
+    if let Err(e) = fs::write(path, decoded_content) {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to write: {}", e)));
     }
 
-    let response = Response::builder(201).build();
-    Ok(response)
+    Ok(Response::builder(StatusCode::Created).build())
 }
