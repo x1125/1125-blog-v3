@@ -55,7 +55,3 @@ pre.mail-graphics {
 .sectionLink:hover > * {
     display: inline-block !important;
 }
-
-tag {
-    display: none;
-}
