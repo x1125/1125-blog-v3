@@ -68,20 +68,55 @@ pre.mail-graphics {
 }
 
 .update-section .diff {
-    white-space: pre;
-    max-height: 200px;
+    white-space: pre-line;
     overflow: hidden;
     color: #8c9b9d;
     transition: max-height 0.25s ease-out;
-}
-
-.update-section .diff:hover {
-    max-height: 1000px;
-    transition: max-height 0.25s ease-in;
+    padding: 0;
 }
 
 .update-section .diff span {
     font-family: inherit;
+}
+
+.update-section .diff-content {
+    padding: .75rem;
+    float: left !important;
+    width: 100%;
+}
+
+.update-section .diff.preview {
+    max-height: 200px;
+}
+
+.update-section .diff-overlay {
+    background: rgba(0, 0, 0, 0.7);
+    height: 198px;
+    width: 100%;
+    position: relative;
+}
+
+.update-section .diff-overlay > span {
+    text-shadow: 0 0 15px rgb(255, 255, 255);
+    font-size: 1.5em;
+    position: absolute;
+    left: 45%;
+    top: 40%;
+}
+
+.update-section .diff-hide {
+    float: left !important;
+    text-align: center;
+    width: 100%;
+    margin-bottom: .75rem;
+    border-top: 1px dashed;
+    margin-top: .75rem;
+    padding-top: .75rem;
+}
+
+.update-section .diff-overlay > span:hover, .update-section .diff-hide:hover > span {
+    cursor: pointer;
+    color: #fff;
 }
 
 /* resetting bulma for markdown view */

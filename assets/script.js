@@ -276,6 +276,7 @@ function RenderRecentlyUpdatedAction() {
     HttpGetRequest('updates.json').then((updateData) => {
         renderUpdates(JSON.parse(updateData), document.getElementById('main-container'));
         ShowContentContainer('main');
+        InitRecentlyUpdatedListeners();
     }).catch((error) => {
         console.error(error);
         SetMessageBox('danger', 'Unknown error', 'Please try reloading the page');
@@ -337,6 +338,21 @@ function AddHeadlineIndex() {
     htmlContent += '</ul>';
     headlineIndexContainer.innerHTML = htmlContent;
     contentContainer.prepend(headlineIndexContainer);
+}
+
+function InitRecentlyUpdatedListeners() {
+    document.querySelectorAll('span.show-diff').forEach((el) => {
+        el.addEventListener('click', (e) => {
+            e.target.parentNode.classList.add('is-hidden');
+            e.target.parentNode.parentNode.classList.remove('preview');
+        });
+    });
+    document.querySelectorAll('div.diff-hide span').forEach((el) => {
+        el.addEventListener('click', (e) => {
+            e.target.parentNode.parentNode.querySelector('.diff-overlay').classList.remove('is-hidden');
+            e.target.parentNode.parentNode.classList.add('preview');
+        });
+    });
 }
 
 function InitPostListeners() {
@@ -443,7 +459,7 @@ function renderUpdates(updates, target) {
                     items += '&nbsp;<span class="tag is-primary"> updated </span>';
                     break;
             }
-            items += `<br><div class="column custom-box diff" data-key="${key}" data-path="${item['path']}">loading...</div></p>`;
+            items += `<br><div class="column custom-box diff preview" data-key="${key}" data-path="${item['path']}"><div class="diff-content"></div><div class="diff-hide"><span>Hide</span></div><div class="diff-overlay"><span class="show-diff">Show diff</span></div></div></p>`;
         });
 
         target.innerHTML += `<section class="section update-section">
@@ -456,7 +472,7 @@ ${items}
 
         HttpGetRequest('update_diffs/' + key + '.json').then((diffData) => {
             JSON.parse(diffData).forEach((diff) => {
-                const target = document.querySelector(`div[data-key="${key}"][data-path="${diff.path}"]`);
+                const target = document.querySelector(`div[data-key="${key}"][data-path="${diff.path}"] div.diff-content`);
                 target.innerHTML = diff.diff
                     .replace(/^\+(.*?)$/gm, '<span class="has-text-success">+$1</span>')
                     .replace(/^-(.*?)$/gm, '<span class="has-text-danger">-$1</span>');
