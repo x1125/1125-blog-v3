@@ -1,0 +1,44 @@
+html {
+    background: url('background.png') fixed #000000;
+}
+
+html, body {
+    font-family: 'Hack';
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-size: revert;
+}
+
+aside.menu .is-active {
+    background: #f5f5f5;
+    color: #3f3f3f;
+}
+
+.custom-box {
+    background: rgba(248, 245, 240, 0.75);
+    border-radius: 3px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+}
+
+#search-box {
+    display: inline-block;
+    vertical-align: text-top;
+    padding: 1px 3px 1px 3px;
+}
+
+#search {
+    background: none;
+    border: none;
+}
+
+#menu-bottom a {
+    color: #3f3f3f;
+}
+
+pre.mail-graphics {
+    font-size: 9px;
+}
