@@ -10,6 +10,12 @@ const Tags = {
     'abandoned': 'black',
 };
 
+const AnchorScroll = {
+    interval: null,
+    scrollTop: 0,
+    iterations: 0,
+}
+
 let STLViewerLibsLoaded = false;
 const STLViewerLibs = [
     'assets/three.min.js',
@@ -392,9 +398,18 @@ function ScrollToAnchor(id) {
     if (!targetElement) {
         return;
     }
-    window.setTimeout(()=>{
-        (document.scrollingElement || document.documentElement).scrollTop = targetElement.offsetTop;
-    }, 100) // no idea...
+    AnchorScroll.iterations = 0;
+    AnchorScroll.scrollTop = 0;
+    AnchorScroll.interval = setInterval(()=>{
+        AnchorScroll.iterations++;
+        if (AnchorScroll.iterations > 10) {
+            clearInterval(AnchorScroll.interval)
+        }
+        if (AnchorScroll.scrollTop < targetElement.offsetTop) {
+            (document.scrollingElement || document.documentElement).scrollTop = targetElement.offsetTop;
+            AnchorScroll.scrollTop = targetElement.offsetTop;
+        }
+    }, 100)
 }
 
 function InitIcons() {
