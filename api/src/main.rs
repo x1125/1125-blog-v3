@@ -7,6 +7,7 @@ use std::process;
 use tera::Tera;
 
 use tide::security::{CorsMiddleware, Origin};
+use tide_rustls::TlsListener;
 use crate::blog::auth_middleware::AuthMiddleware;
 
 use crate::blog::config::Config;
@@ -90,7 +91,22 @@ async fn webserver(config: Config) {
     app.with(AuthMiddleware {}).at("/commit").post(ctrl_commit);
     app.with(AuthMiddleware {}).at("/generate").post(ctrl_generate);
     app.with(AuthMiddleware {}).at("/push_remote").post(ctrl_push_remote);
-    if let Err(e) = app.listen(env::var("LISTEN").unwrap_or(String::from("127.0.0.1:8080"))).await {
-        eprintln!("{}", e)
+
+    let listen = env::var("LISTEN").unwrap_or(String::from("127.0.0.1:8080"));
+    let tide_cert_path = env::var("TIDE_CERT_PATH").unwrap_or(String::from(""));
+    let tide_key_path = env::var("TIDE_KEY_PATH").unwrap_or(String::from(""));
+
+    if tide_cert_path.len() > 0 && tide_key_path.len() > 0 {
+        if let Err(e) = app.listen(TlsListener::build()
+                                       .addrs(listen)
+                                       .cert(tide_cert_path)
+                                       .key(tide_key_path),
+            ).await {
+            eprintln!("{}", e)
+        }
+    } else {
+        if let Err(e) = app.listen(listen).await {
+            eprintln!("{}", e)
+        }
     }
 }

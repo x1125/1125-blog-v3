@@ -124,7 +124,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const BASE = function (){
-            return (location.hostname === 'localhost') ? `http://localhost:8080` : `http://172.16.0.2:8080`;
+            return (location.hostname === 'localhost') ? `http://localhost:8080` : `http://172.16.0.1:8080`;
         }();
 
         const setCurrentFilename = (file) => {
