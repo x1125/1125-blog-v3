@@ -27,11 +27,11 @@ with open('post_index', 'w') as f:
     f.write(json.dumps(post_index))
     f.close()
 
-for entry in post_index:
-    fname = '{}{}.md'.format(posts_path, entry)
-    try:
-        with open(fname, 'r'):
-            print(fname)
-            f.close()
-    except FileNotFoundError:
-        continue
+# for entry in post_index:
+#     fname = '{}{}.md'.format(posts_path, entry)
+#     try:
+#         with open(fname, 'r'):
+#             print(fname)
+#             f.close()
+#     except FileNotFoundError:
+#         continue

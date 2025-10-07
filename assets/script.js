@@ -57,8 +57,63 @@ document.addEventListener("DOMContentLoaded", function () {
         DoRouting();
     }, false);
 
-    DoRouting();
+    LoadMenu(() => DoRouting());
 });
+
+function LoadMenu(cb) {
+    HttpGetRequest('post_index')
+        .then((postIndexData) => {
+            const postIndex = JSON.parse(postIndexData);
+            RenderMenu(postIndex);
+        })
+        .finally(() => {
+            if (cb) {
+                cb();
+            }
+        });
+}
+
+function RenderMenu(postIndex) {
+    const addSubNode = (prefix, pathArr) => {
+        // starting with the first element
+        const nodeName = pathArr.shift();
+
+        // construct full path
+        let path = nodeName;
+        let hasPrefix = false;
+        if (prefix.length > 0 && prefix[0].length > 0) {
+            path = prefix.join('/') + '/' + path;
+            hasPrefix = true;
+        }
+
+        // add only if not already exists
+        if (document.querySelector(`a[href="#${path}"]`) === null) {
+            let target = '#menuList';
+            if (hasPrefix) {
+                target += ' ' + 'ul[data-id="' + prefix.join('/') + '"]';
+
+                if (document.querySelector(target) === null) {
+                    document.querySelector('li[data-id="' + prefix.join('/') + '"]').innerHTML +=
+                        '<ul data-id="' + prefix.join('/') + '"></ul>';
+                }
+            }
+            document.querySelector(target).innerHTML += NewMenuNode(path, nodeName);
+        }
+
+        // element moved from pathArr to prefix; next iteration can start
+        if (pathArr.length > 0 && pathArr[0].length > 0) {
+            prefix.push(nodeName);
+            addSubNode(prefix, pathArr);
+        }
+    };
+    postIndex.forEach((post) => {
+        addSubNode([], post.split('/'));
+    });
+}
+
+function NewMenuNode(link, title) {
+    return `<li data-id="${link}"><a href="#${link}">&raquo;&nbsp;${title}</a></li>`;
+}
 
 function DoRouting() {
     Request.parse(window.location.hash);
@@ -133,9 +188,8 @@ function RenderPostAction(mdPath) {
 
 function ShowContentContainer(type) {
     const contentContainers = document.getElementsByClassName('content-container');
-    Array.prototype.forEach.call(contentContainers, function (contentContainer) {
-        contentContainer.classList.add('is-hidden');
-    });
+    Array.prototype.forEach.call(contentContainers,
+        (contentContainer) => contentContainer.classList.add('is-hidden'));
     document.getElementById(type + '-container').classList.remove('is-hidden');
 }
 
@@ -157,9 +211,9 @@ function SetActiveMenuItem(routes) {
         routeCombination.push(routes[i]);
         routeSet.push(routeCombination.join(pathDelimiter));
     }
-    document.querySelectorAll('#menuList li a').forEach(function(a){
-        a.classList.toggle('is-active', routeSet.indexOf(a.hash.substr(1)) !== -1);
-    });
+    document.querySelectorAll('#menuList li a').forEach((a) =>
+        a.classList.toggle('is-active', routeSet.indexOf(a.hash.substr(1)) !== -1)
+    );
 }
 
 function ScrollToAnchor(id) {
