@@ -268,6 +268,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.addEventListener('keydown', function(e){
+        if(e.key === 'Escape' && RenderFrame.content != null) {
+            RenderFrame.content.parentNode.classList.remove('is-active');
+        }
+    });
+
     document.querySelector('aside.menu p.menu-label').addEventListener('click', ()=>{
         Menu.toggleCollapse();
     });
@@ -393,6 +399,13 @@ function InitPostListeners() {
         el.addEventListener('click', (e) => {
             e.preventDefault();
             OpenViewSTLModal(e.target.getAttribute('href'));
+        });
+    });
+
+    document.querySelectorAll('img.previewimage').forEach((el) => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.target.classList.toggle('active');
         });
     });
 }

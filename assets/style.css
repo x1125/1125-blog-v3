@@ -180,6 +180,19 @@ pre.mail-graphics {
     color: #fff;
 }
 
+.previewimage {
+    max-width: 500px;
+    vertical-align: top;
+}
+
+.previewimage.active {
+    max-width: 100%;
+}
+
+.previewimage:hover {
+    cursor: pointer;
+}
+
 /* resetting bulma for markdown view */
 
 #main-container h1,
