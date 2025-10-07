@@ -5,9 +5,7 @@ use clap::Command;
 use std::path::Path;
 use std::process;
 use tera::Tera;
-use tide::http::headers::HeaderValue;
 
-use tide::security::{CorsMiddleware, Origin};
 use tide_rustls::TlsListener;
 use crate::blog::auth_middleware::AuthMiddleware;
 
@@ -66,7 +64,8 @@ async fn main() {
 }
 
 async fn webserver(config: Config) {
-    if !Path::new(config.working_path.as_str()).exists() {
+    let working_path = config.working_path.clone();
+    if !Path::new(working_path.as_str()).exists() {
         eprintln!(
             "working path \"{}\" could not be found",
             config.working_path
@@ -74,29 +73,25 @@ async fn webserver(config: Config) {
         process::exit(1);
     }
 
-    //let cors = CorsMiddleware::new().allow_origin(Origin::from("*"));
-    let cors = CorsMiddleware::new()
-        .allow_methods("GET, POST, OPTIONS".parse::<HeaderValue>().unwrap())
-        .allow_origin(Origin::from("*"))
-        .allow_credentials(false);
-
     let mut app = tide::with_state(config);
-    app.with(cors);
+    if let Err(e) = app.at("/").serve_dir(working_path) {
+        eprintln!("error on serve_dir: {}", e)
+    }
     app.with(AuthMiddleware {});
-    app.at("/files").get(ctrl_get_files);
-    app.at("/changes").get(ctrl_get_changes);
-    app.at("/preview").post(ctrl_get_preview);
-    app.at("/file/new").post(ctrl_new_file);
-    app.at("/folder/new").post(ctrl_new_folder);
-    app.at("/stage").post(ctrl_stage);
-    app.at("/revert").post(ctrl_revert);
-    app.at("/upload").post(ctrl_upload);
-    app.at("/save").post(ctrl_save);
-    app.at("/rename").post(ctrl_rename);
-    app.at("/delete").post(ctrl_delete);
-    app.at("/commit").post(ctrl_commit);
-    app.at("/generate").post(ctrl_generate);
-    app.at("/push_remote").post(ctrl_push_remote);
+    app.at("/api/files").get(ctrl_get_files);
+    app.at("/api/changes").get(ctrl_get_changes);
+    app.at("/api/preview").post(ctrl_get_preview);
+    app.at("/api/file/new").post(ctrl_new_file);
+    app.at("/api/folder/new").post(ctrl_new_folder);
+    app.at("/api/stage").post(ctrl_stage);
+    app.at("/api/revert").post(ctrl_revert);
+    app.at("/api/upload").post(ctrl_upload);
+    app.at("/api/save").post(ctrl_save);
+    app.at("/api/rename").post(ctrl_rename);
+    app.at("/api/delete").post(ctrl_delete);
+    app.at("/api/commit").post(ctrl_commit);
+    app.at("/api/generate").post(ctrl_generate);
+    app.at("/api/push_remote").post(ctrl_push_remote);
 
     let listen = env::var("LISTEN").unwrap_or(String::from("127.0.0.1:8080"));
     let tide_cert_path = env::var("TIDE_CERT_PATH").unwrap_or(String::from(""));

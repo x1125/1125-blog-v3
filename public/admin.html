@@ -123,9 +123,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const BASE = function (){
-            return (location.hostname === 'localhost') ? `http://localhost:8080` : `https://172.16.0.1:8080`;
-        }();
+        const BASE = `https://${location.host}/api`;
 
         const setCurrentFilename = (file) => {
             document.getElementById('content-filename').innerText = file;
@@ -296,8 +294,11 @@
         };
 
         window['viewStaging'] = () => {
-            location.hash = 'staging';
-            location.reload();
+            if (location.hash !== '#staging') {
+                location.hash = 'staging';
+            } else {
+                location.reload();
+            }
         };
 
         window['saveContent'] = () => {

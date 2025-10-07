@@ -12,6 +12,10 @@ impl<State> Middleware<State> for AuthMiddleware
         State: Clone + Send + Sync + ConfigType + 'static,
 {
     async fn handle(&self, req: Request<State>, next: Next<'_, State>) -> tide::Result {
+        if !req.url().path().starts_with("/api/") {
+            return Ok(next.run(req).await);
+        }
+
         let auth_header = req.header(AUTH_HEADER_NAME);
         if auth_header.is_none() {
             return Ok(unauthorized("no auth header"));
