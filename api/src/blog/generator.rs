@@ -14,11 +14,13 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::{create_dir, remove_dir_all};
+use std::io::{Read, Write};
 use std::iter::FromIterator;
 use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
+use bytebuffer::ByteBuffer;
 use tera::{Context, Tera};
 
 const DEFAULT_FILTER: &'static str = ".md";
@@ -67,6 +69,7 @@ pub struct Generator<'a> {
     markdown_plugins: ComrakPlugins<'a>,
     headline_regex: Option<Regex>,
     image_regex: Option<Regex>,
+    log_buffer: Option<ByteBuffer>,
 }
 
 impl<'a> Generator<'a> {
@@ -114,6 +117,7 @@ impl<'a> Generator<'a> {
             markdown_plugins: ComrakPlugins::default(),
             headline_regex: None,
             image_regex: None,
+            log_buffer: None,
         };
         generator
             .markdown_plugins
@@ -131,7 +135,21 @@ impl<'a> Generator<'a> {
         self.filter = filter;
     }
 
-    fn generate(&mut self) -> Result<(), GeneratorError> {
+    pub fn log_to_buffer(&mut self) {
+        self.log_buffer = Some(ByteBuffer::new());
+    }
+
+    pub fn get_log_result(&mut self) -> String {
+        if self.log_buffer.is_some() {
+            let mut output = String::new();
+            let mut log_buffer = self.log_buffer.clone().unwrap();
+            let _ = log_buffer.read_to_string(&mut output);
+            return output;
+        }
+        return String::new();
+    }
+
+    pub fn generate(&mut self) -> Result<(), GeneratorError> {
         self.log_time(Some("Starting"), true);
 
         // clear old files
@@ -317,15 +335,29 @@ impl<'a> Generator<'a> {
     }
 
     fn log_time(&mut self, name: Option<&str>, flush: bool) {
-        if name.is_some() {
-            print!("{:.2?} {}...", self.instant.elapsed(), name.unwrap());
-            if flush {
-                println!()
+        if self.log_buffer.is_some() {
+            let log_buffer = self.log_buffer.as_mut().unwrap();
+            if name.is_some() {
+                let _ = log_buffer.write_all(format!("{:.2?} {}...", self.instant.elapsed(), name.unwrap()).as_bytes());
+                if flush {
+                    let _ = log_buffer.write_all("\n".as_bytes());
+                }
+            } else {
+                let _ = log_buffer.write_all(format!(" Done (took {:.2?})\n", self.last_instant.elapsed()).as_bytes());
+                self.last_instant = Instant::now();
             }
         } else {
-            println!(" Done (took {:.2?})", self.last_instant.elapsed());
-            self.last_instant = Instant::now();
+            if name.is_some() {
+                print!("{:.2?} {}...", self.instant.elapsed(), name.unwrap());
+                if flush {
+                    println!();
+                }
+            } else {
+                println!(" Done (took {:.2?})", self.last_instant.elapsed());
+                self.last_instant = Instant::now();
+            }
         }
+
     }
 
     pub fn generate_preview_images(&self, posts: &Vec<Post>) {
@@ -1073,12 +1105,12 @@ fn search(haystack: &Vec<String>, needle: &String) -> Option<usize> {
     None
 }
 
-pub fn generate_all(config: Config, tera: &Tera) -> Result<(), GeneratorError> {
+pub fn generate_all(config: &Config, tera: &Tera) -> Result<(), GeneratorError> {
     generate_files(config, tera, None)
 }
 
 pub fn generate_files(
-    config: Config,
+    config: &Config,
     tera: &Tera,
     name_arg: Option<&String>,
 ) -> Result<(), GeneratorError> {

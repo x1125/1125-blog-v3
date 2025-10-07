@@ -71,6 +71,34 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
         if let Err(err) = repo.checkout_head(Some(&mut checkout_builder)) {
             return Ok(http_error(StatusCode::InternalServerError, format!("Unable to checkout file: {}", err)));
         }
+    } else if change.change == "Modified" {
+        let master = repo.revparse_single("master").unwrap();
+        let commit = master.as_commit().unwrap();
+        let tree = commit.tree().unwrap();
+        match tree.get_name(file.as_str()) {
+            Some(tree_entry) => {
+                let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
+                let path = Path::new(path_str.as_str());
+                if !path.exists() {
+                    let response = Response::builder(409)
+                        .build();
+                    return Ok(response);
+                }
+
+                let f = fs::write(path, tree_entry.to_object(&repo).unwrap().as_blob().unwrap().content());
+                if f.is_err() {
+                    let response = Response::builder(500)
+                        .body(format!("{}", f.err().unwrap()))
+                        .build();
+                    return Ok(response);
+                }
+            }
+            None => {
+                let response = Response::builder(StatusCode::NotFound)
+                    .build();
+                return Ok(response);
+            }
+        };
     } else if change.change == "Untracked" {
         let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
         let path = Path::new(path_str.as_str());

@@ -8,6 +8,8 @@ use tera::Tera;
 use tide::security::{CorsMiddleware, Origin};
 
 use crate::blog::config::Config;
+use crate::blog::ctrl_commit::ctrl_commit;
+use crate::blog::ctrl_generate::ctrl_generate;
 use crate::blog::ctrl_delete::ctrl_delete;
 use crate::blog::ctrl_get_changes::ctrl_get_changes;
 use crate::blog::ctrl_get_files::ctrl_get_files;
@@ -47,7 +49,7 @@ async fn main() {
         .get_matches();
 
     if let Some(_) = matches.subcommand_matches("generate") {
-        match generate_all(config, &tera) {
+        match generate_all(&config, &tera) {
             Ok(_) => {}
             Err(e) => panic!("Unable to generate file: {:?}", e.message),
         }
@@ -84,6 +86,8 @@ async fn webserver(config: Config) {
     app.at("/save").post(ctrl_save);
     app.at("/rename").post(ctrl_rename);
     app.at("/delete").post(ctrl_delete);
+    app.at("/commit").post(ctrl_commit);
+    app.at("/generate").post(ctrl_generate);
     match app.listen("127.0.0.1:8080").await {
         Ok(()) => {}
         Err(err) => eprintln!("{}", err.to_string()),
