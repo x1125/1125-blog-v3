@@ -172,6 +172,7 @@ impl<'a> Generator<'a> {
             posts.push(post.clone());
         }
 
+        let mut tag_list: Vec<String> = vec!();
         if self.filter == DEFAULT_FILTER {
             // create recent posts
             self.log_time(Some("Generating recent-posts.html"), true);
@@ -212,6 +213,7 @@ impl<'a> Generator<'a> {
                 for post_tag in post.tags.iter() {
                     if !tag_map.contains_key(post_tag) {
                         tag_map.insert(post_tag.to_string(), vec!());
+                        tag_list.push(post_tag.clone());
                     }
                     tag_map.get_mut(post_tag).unwrap().push(post.clone());
                 }
@@ -253,7 +255,7 @@ impl<'a> Generator<'a> {
             self.log_time(None, false);
 
             self.log_time(Some("Checking unused files"), false);
-            self.check_unused_files(posts)?;
+            self.check_unused_files(posts, &tag_list)?;
             self.log_time(None, false);
         }
 
@@ -378,7 +380,7 @@ impl<'a> Generator<'a> {
         Ok(())
     }
 
-    fn check_unused_files(&self, posts: &Vec<Post>) -> Result<(), GeneratorError> {
+    fn check_unused_files(&self, posts: &Vec<Post>, tag_list: &Vec<String>) -> Result<(), GeneratorError> {
         let files = find_files(String::from(self.input_path.to_str().unwrap()), None);
 
         let filtered_files: &mut Vec<String> = &mut vec!();
@@ -418,6 +420,23 @@ impl<'a> Generator<'a> {
                     Some(i) => { filtered_files.swap_remove(i); },
                     None => {}
                 }
+            }
+        }
+
+        let mut found_overview_files: Vec<String> = vec!();
+        for file in filtered_files.iter() {
+            if file.starts_with("overview/") {
+                for tag in tag_list {
+                    if *file == format!("overview/{}.jpg", tag) {
+                        found_overview_files.push(file.to_string());
+                    }
+                }
+            }
+        }
+        for file in found_overview_files {
+            match search(filtered_files, &file) {
+                Some(i) => { filtered_files.swap_remove(i); },
+                None => {}
             }
         }
 
