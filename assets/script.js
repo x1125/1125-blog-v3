@@ -59,6 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }, false);
 
     LoadMenu(() => DoRouting());
+    initScrollToTop();
 });
 
 function LoadMenu(cb) {
@@ -243,4 +244,15 @@ function ScrollToAnchor(id) {
         return;
     }
     (document.scrollingElement || document.documentElement).scrollTop = targetElement.offsetTop;
+}
+
+function initScrollToTop() {
+    window.addEventListener('scroll', function(e){
+        document.getElementById('scrolltop').classList.toggle('scrolltop-hidden',
+            e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
+    });
+}
+
+function scrollToTop() {
+    document.documentElement.scrollTop = 0;
 }
