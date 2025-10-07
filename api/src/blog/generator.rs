@@ -2,9 +2,11 @@ use crate::blog::config::HIGHLIGHT_THEME;
 use crate::blog::error::GeneratorError;
 use crate::blog::utils::find_files;
 use crate::Config;
+use bytebuffer::ByteBuffer;
 use comrak::adapters::SyntaxHighlighterAdapter;
+use comrak::nodes::{AstNode, NodeValue};
 use comrak::plugins::syntect::SyntectAdapter;
-use comrak::{markdown_to_html_with_plugins, ComrakOptions, ComrakPlugins, ExtensionOptionsBuilder, RenderOptionsBuilder, Arena, parse_document};
+use comrak::{markdown_to_html_with_plugins, parse_document, Arena, ComrakOptions, ComrakPlugins, Options};
 use regex::Regex;
 use rexiv2::Metadata;
 use serde::Serialize;
@@ -17,8 +19,6 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
-use bytebuffer::ByteBuffer;
-use comrak::nodes::{AstNode, NodeValue};
 use tera::{Context, Tera};
 
 const DEFAULT_FILTER: &'static str = ".md";
@@ -78,33 +78,28 @@ impl<'a> Generator<'a> {
         output_path: PathBuf,
         adapter: Option<&'a dyn SyntaxHighlighterAdapter>,
     ) -> Self {
-        let mut extensions_builder = ExtensionOptionsBuilder::default();
-        extensions_builder.
-            strikethrough(true).
-            tagfilter(false).
-            table(true).
-            autolink(false).
-            tasklist(false).
-            superscript(false).
-            footnotes(true).
-            description_lists(false);
-        let extensions = extensions_builder.build().expect("unable to build extensions builder");
+        let mut options = Options::default();
+        options.extension.strikethrough = true;
+        options.extension.tagfilter = false;
+        options.extension.table = true;
+        options.extension.autolink = false;
+        options.extension.tasklist = false;
+        options.extension.superscript = false;
+        options.extension.footnotes = true;
+        options.extension.description_lists = false;
 
-        let mut render_options_builder = RenderOptionsBuilder::default();
-        render_options_builder.
-            hardbreaks(false).
-            github_pre_lang(false).
-            width(0).
-            unsafe_(true).
-            escape(false).
-            sourcepos(false);
-        let render_options = render_options_builder.build().expect("unable to build render options builder");
+        options.render.hardbreaks = false;
+        options.render.github_pre_lang = false;
+        options.render.width = 0;
+        options.render.unsafe_ = true;
+        options.render.escape = false;
+        options.render.sourcepos = false;
 
         // configure markdown renderer
         let options = ComrakOptions {
-            extension: extensions,
+            extension: options.extension,
             parse: Default::default(),
-            render: render_options,
+            render: options.render,
         };
 
         let mut generator = Generator {
@@ -780,7 +775,9 @@ impl<'a> Generator<'a> {
         let mut is_paragraph = false;
 
         fn iter_nodes<'a, F>(node: &'a AstNode<'a>, f: &F, description: &mut String, is_paragraph: &mut bool)
-            where F: Fn(&'a AstNode<'a>, &mut String, &mut bool) {
+        where
+            F: Fn(&'a AstNode<'a>, &mut String, &mut bool),
+        {
             f(node, description, is_paragraph);
             for c in node.children() {
                 iter_nodes(c, f, description, is_paragraph);

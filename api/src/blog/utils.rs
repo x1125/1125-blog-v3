@@ -1,10 +1,10 @@
-use git2::{Delta, DiffDelta, DiffOptions, Index, Patch, Repository};
-use serde::Serialize;
-use std::{borrow::BorrowMut, path::PathBuf};
-use std::path::Path;
-use regex::Regex;
-use walkdir::WalkDir;
 use crate::blog::config::DEFAULT_BRANCH;
+use git2::{Delta, DiffDelta, DiffOptions, Index, Patch, Repository};
+use regex::Regex;
+use serde::Serialize;
+use std::path::Path;
+use std::{borrow::BorrowMut, path::PathBuf};
+use walkdir::WalkDir;
 
 #[derive(Debug, Serialize)]
 pub struct File {
@@ -104,7 +104,7 @@ pub fn get_entries(files: &mut Vec<File>) -> (Vec<Entry>, Vec<UnknownEntry>) {
                 entry.assets.push(file.name.clone());
             }
         } else {
-            unknown_entries.push(UnknownEntry{
+            unknown_entries.push(UnknownEntry {
                 name: file.name.clone(),
                 is_dir: file.is_dir,
             });

@@ -1,18 +1,18 @@
 mod blog;
 
-use std::env;
 use clap::Command;
+use std::env;
 use std::path::Path;
 use std::process;
 use tera::Tera;
 
-use tide_rustls::TlsListener;
 use crate::blog::auth_middleware::AuthMiddleware;
+use tide_rustls::TlsListener;
 
 use crate::blog::config::Config;
 use crate::blog::ctrl_commit::ctrl_commit;
-use crate::blog::ctrl_generate::ctrl_generate;
 use crate::blog::ctrl_delete::ctrl_delete;
+use crate::blog::ctrl_generate::ctrl_generate;
 use crate::blog::ctrl_get_changes::ctrl_get_changes;
 use crate::blog::ctrl_get_files::ctrl_get_files;
 use crate::blog::ctrl_get_preview::ctrl_get_preview;
@@ -104,7 +104,7 @@ async fn webserver(config: Config) {
                                        .addrs(listen)
                                        .cert(tide_cert_path)
                                        .key(tide_key_path),
-            ).await {
+        ).await {
             eprintln!("unable to start webserver: {}", e)
         }
     } else {

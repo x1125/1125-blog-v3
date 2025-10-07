@@ -1,8 +1,8 @@
-use std::fs;
-use tide::{Request, Response, StatusCode};
-use tide::prelude::*;
 use crate::blog::config::Config;
 use crate::blog::error::http_error;
+use std::fs;
+use tide::prelude::*;
+use tide::{Request, Response, StatusCode};
 
 #[derive(Debug, Deserialize)]
 struct SaveData {

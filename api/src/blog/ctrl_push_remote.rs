@@ -1,7 +1,7 @@
+use crate::blog::config::{Config, REF_NAME, REMOTE_NAME};
+use crate::blog::error::http_error;
 use git2::{Cred, PushOptions, RemoteCallbacks, Repository};
 use tide::{Request, Response, StatusCode};
-use crate::blog::config::{Config, REMOTE_NAME, REF_NAME};
-use crate::blog::error::http_error;
 
 pub async fn ctrl_push_remote(req: Request<Config>) -> tide::Result {
     let repo_path = req.state().get_input_path();
@@ -9,14 +9,14 @@ pub async fn ctrl_push_remote(req: Request<Config>) -> tide::Result {
         Ok(repo) => repo,
         Err(e) => {
             return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e.message())));
-        },
+        }
     };
 
     let mut remote = match repo.find_remote(REMOTE_NAME) {
         Ok(remote) => remote,
         Err(e) => {
             return Ok(http_error(StatusCode::InternalServerError, format!("unable to find remote: {}", e.message())));
-        },
+        }
     };
 
     let mut push_option = PushOptions::new();

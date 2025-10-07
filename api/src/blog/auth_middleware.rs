@@ -1,6 +1,6 @@
-use tide::{Middleware, Next, Request, Response, StatusCode};
-use tide::http::mime;
 use crate::blog::config::ConfigType;
+use tide::http::mime;
+use tide::{Middleware, Next, Request, Response, StatusCode};
 
 const AUTH_HEADER_NAME: &str = "Authorization";
 
@@ -8,8 +8,8 @@ pub struct AuthMiddleware {}
 
 #[async_trait::async_trait]
 impl<State> Middleware<State> for AuthMiddleware
-    where
-        State: Clone + Send + Sync + ConfigType + 'static,
+where
+    State: Clone + Send + Sync + ConfigType + 'static,
 {
     async fn handle(&self, req: Request<State>, next: Next<'_, State>) -> tide::Result {
         if !req.url().path().starts_with("/api/") {
@@ -45,9 +45,8 @@ impl<State> Middleware<State> for AuthMiddleware
 }
 
 fn unauthorized(message: &str) -> Response {
-    return Response::builder(StatusCode::Unauthorized)
-        //.header("Access-Control-Allow-Origin", "*")
+    Response::builder(StatusCode::Unauthorized)
         .body(message)
         .content_type(mime::PLAIN)
-        .build();
+        .build()
 }

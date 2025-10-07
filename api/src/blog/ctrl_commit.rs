@@ -1,8 +1,8 @@
-use git2::Repository;
-use tide::{Request, Response, StatusCode};
-use tide::prelude::*;
 use crate::blog::config::{Config, DEFAULT_BRANCH};
 use crate::blog::error::http_error;
+use git2::Repository;
+use tide::prelude::*;
+use tide::{Request, Response, StatusCode};
 
 #[derive(Debug, Deserialize)]
 struct Commit {
@@ -17,7 +17,7 @@ pub async fn ctrl_commit(mut req: Request<Config>) -> tide::Result {
         Ok(repo) => repo,
         Err(e) => {
             return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e)));
-        },
+        }
     };
 
     let signature = match repo.signature() {
@@ -31,7 +31,7 @@ pub async fn ctrl_commit(mut req: Request<Config>) -> tide::Result {
     let tree = match index.write_tree() {
         Ok(tree) => tree,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError,format!("could not write index to tree: {}", e)));
+            return Ok(http_error(StatusCode::InternalServerError, format!("could not write index to tree: {}", e)));
         }
     };
 

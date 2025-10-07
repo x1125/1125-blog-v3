@@ -1,10 +1,10 @@
+use crate::blog::error::http_error;
+use crate::blog::utils::{get_changes, get_diffs, Change, Diff};
 use git2::Repository;
-use crate::blog::utils::{Change, Diff, get_changes, get_diffs};
-use serde_json::json;
 use serde::Serialize;
+use serde_json::json;
 use tide::http::mime;
 use tide::{Request, Response, StatusCode};
-use crate::blog::error::http_error;
 
 use crate::Config;
 
@@ -22,7 +22,7 @@ pub async fn ctrl_get_changes(req: Request<Config>) -> tide::Result {
             return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e.message())));
         }
     };
-    let change_response = ChangeResponse{
+    let change_response = ChangeResponse {
         changes: get_changes(&repo),
         diffs: get_diffs(&repo),
     };

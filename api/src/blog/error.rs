@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
-use tide::{Body, StatusCode};
 use tide::Response;
+use tide::{Body, StatusCode};
 
 #[derive(Debug, Clone)]
 pub struct GeneratorError {

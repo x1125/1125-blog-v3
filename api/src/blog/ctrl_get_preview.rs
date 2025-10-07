@@ -1,11 +1,11 @@
 use crate::blog::config::{Config, HIGHLIGHT_THEME};
+use crate::blog::error::http_error;
 use crate::blog::generator::{Generator, Post};
 use comrak::plugins::syntect::SyntectAdapter;
 use tera::Tera;
 use tide::http::mime;
 use tide::prelude::*;
 use tide::{Request, Response, StatusCode};
-use crate::blog::error::http_error;
 
 #[derive(Debug, Deserialize)]
 struct PreviewData {

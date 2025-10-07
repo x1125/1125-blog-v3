@@ -1,12 +1,12 @@
+use crate::blog::config::{Config, DEFAULT_BRANCH};
+use crate::blog::error::http_error;
+use crate::blog::utils::{get_changes, Change};
+use git2::build::CheckoutBuilder;
+use git2::Repository;
 use std::fs;
 use std::path::Path;
-use git2::Repository;
-use git2::build::CheckoutBuilder;
-use tide::{Request, Response, StatusCode};
-use crate::blog::config::{Config, DEFAULT_BRANCH};
-use crate::blog::utils::{Change, get_changes};
 use tide::prelude::*;
-use crate::blog::error::http_error;
+use tide::{Request, Response, StatusCode};
 
 #[derive(Debug, Deserialize)]
 struct RevertFile {
@@ -21,7 +21,7 @@ pub async fn ctrl_revert(mut req: Request<Config>) -> tide::Result {
         Ok(repo) => repo,
         Err(e) => {
             return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e.message())));
-        },
+        }
     };
     let mut index = repo.index().unwrap();
 

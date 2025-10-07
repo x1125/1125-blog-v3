@@ -1,9 +1,9 @@
-use std::path::Path;
-use git2::{IndexAddOption, Repository};
-use tide::{Request, Response, StatusCode};
 use crate::blog::config::{Config, DEFAULT_BRANCH};
-use tide::prelude::*;
 use crate::blog::error::http_error;
+use git2::{IndexAddOption, Repository};
+use std::path::Path;
+use tide::prelude::*;
+use tide::{Request, Response, StatusCode};
 
 #[derive(Debug, Deserialize)]
 struct StageFile {
@@ -25,21 +25,21 @@ pub async fn ctrl_stage(mut req: Request<Config>) -> tide::Result {
         Ok(repo) => repo,
         Err(e) => {
             return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e.message())));
-        },
+        }
     };
     let mut index = match repo.index() {
         Ok(index) => index,
         Err(e) => {
             return Ok(http_error(StatusCode::InternalServerError, format!("failed to get index: {}", e.message())));
-        },
+        }
     };
 
     if stage {
         match index.add_all([&file].iter(), IndexAddOption::DEFAULT, None) {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(e) => {
                 return Ok(http_error(StatusCode::InternalServerError, format!("unable to add to index: {}", e.message())));
-            },
+            }
         }
     } else {
         let reference = repo.find_reference(format!("refs/heads/{}", DEFAULT_BRANCH).as_str()).unwrap();
@@ -59,7 +59,7 @@ pub async fn ctrl_stage(mut req: Request<Config>) -> tide::Result {
     }
 
     match index.write() {
-        Ok(()) => {},
+        Ok(()) => {}
         Err(e) => {
             return Ok(http_error(StatusCode::InternalServerError, format!("could not remove from index: {}", e.message())));
         }
