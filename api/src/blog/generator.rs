@@ -4,7 +4,7 @@ use crate::blog::utils::find_files;
 use crate::Config;
 use comrak::adapters::SyntaxHighlighterAdapter;
 use comrak::plugins::syntect::SyntectAdapter;
-use comrak::{markdown_to_html_with_plugins, ComrakOptions, ComrakPlugins, ExtensionOptionsBuilder, RenderOptionsBuilder};
+use comrak::{markdown_to_html_with_plugins, ComrakOptions, ComrakPlugins, ExtensionOptionsBuilder, RenderOptionsBuilder, Arena, parse_document};
 use regex::Regex;
 use rexiv2::Metadata;
 use serde::Serialize;
@@ -18,11 +18,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 use bytebuffer::ByteBuffer;
+use comrak::nodes::{AstNode, NodeValue};
 use tera::{Context, Tera};
 
 const DEFAULT_FILTER: &'static str = ".md";
 const KNOWN_ATTRIBUTES: &'static [&str] = &["created", "status", "tag"];
 const CUSTOM_POSTS: &'static [&str] = &["recent-posts.md", "overview.md"];
+const STATIC_PAGES: &'static [&str] = &["about.md", "contact.md"];
 const ESCAPABLE_CHARACTERS: &'static [char] = &[
     '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!',
 ];
@@ -677,8 +679,19 @@ impl<'a> Generator<'a> {
         }
 
         // write to original Post if available
-        if post.is_some() {
-            post.unwrap().headline_ids = headline_ids;
+        let mut title: Option<String> = None;
+        let mut description: Option<String> = None;
+        match post {
+            Some(post) => {
+                post.headline_ids = headline_ids;
+                let title_str = post.filename.clone().replace(".md", "").replace("_", " ");
+                title = Some(title_str.clone());
+
+                if !STATIC_PAGES.contains(&post.filename.as_str()) {
+                    description = Some(self.get_description(file_content.as_str(), title_str.as_str()));
+                }
+            }
+            None => {}
         }
 
         // add id to each headline
@@ -714,6 +727,12 @@ impl<'a> Generator<'a> {
         context.insert("content", &md);
         if filtered_headlines.len() > 0 {
             context.insert("headlines", &filtered_headlines);
+        }
+        if title.is_some() {
+            context.insert("title", &title.unwrap());
+        }
+        if description.is_some() {
+            context.insert("description", &description.unwrap());
         }
         if extra_context.is_some() {
             context.extend(extra_context.unwrap());
@@ -752,6 +771,50 @@ impl<'a> Generator<'a> {
         self.log_time(None, false);
 
         Ok(())
+    }
+
+    fn get_description(&mut self, content: &str, title: &str) -> String {
+        let arena = Arena::new();
+        let root = parse_document(&arena, content, &ComrakOptions::default());
+        let mut description: String = String::new();
+        let mut is_paragraph = false;
+
+        fn iter_nodes<'a, F>(node: &'a AstNode<'a>, f: &F, description: &mut String, is_paragraph: &mut bool)
+            where F: Fn(&'a AstNode<'a>, &mut String, &mut bool) {
+            f(node, description, is_paragraph);
+            for c in node.children() {
+                iter_nodes(c, f, description, is_paragraph);
+            }
+        }
+
+        iter_nodes(root, &|node, description, is_paragraph| {
+            match &mut node.data.borrow_mut().value {
+                &mut NodeValue::Paragraph => {
+                    *is_paragraph = true;
+                }
+                &mut NodeValue::Link(_) => {
+                    *is_paragraph = true;
+                }
+                &mut NodeValue::Text(ref text) => {
+                    if description.matches('.').count() >= 3 {
+                        return;
+                    }
+
+                    if *is_paragraph && !text.starts_with(title) {
+                        if description.ends_with('.') {
+                            description.push_str(" ");
+                        }
+                        description.push_str(text.as_str());
+                    }
+                    return;
+                }
+                _ => {
+                    *is_paragraph = false;
+                }
+            }
+        }, &mut description, &mut is_paragraph);
+
+        description
     }
 
     pub fn new_post(
@@ -1046,7 +1109,7 @@ impl<'a> Generator<'a> {
                     let old_section = file_content
                         .get(tag.pos.0 - char_shift_pos..tag.pos.1 - char_shift_pos)
                         .unwrap();
-                    let mut without_tag = old_section.clone().replace("{preview}", "");
+                    let mut without_tag = old_section.replace("{preview}", "");
                     let last_slash_pos = without_tag.rfind('/').unwrap();
                     without_tag.insert_str(last_slash_pos, "/preview");
                     let length_diff = old_section.len() - without_tag.len();
@@ -1113,7 +1176,7 @@ pub fn generate_files(
     tera: &Tera,
     name_arg: Option<&String>,
 ) -> Result<(), GeneratorError> {
-    let adapter = SyntectAdapter::new(HIGHLIGHT_THEME);
+    let adapter = SyntectAdapter::new(Some(HIGHLIGHT_THEME));
     let mut generator = Generator::new(
         tera,
         config.get_input_path(),

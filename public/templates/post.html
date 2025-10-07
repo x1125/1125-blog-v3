@@ -3,9 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>eleven25</title>
-
+    
+    <title>eleven25{% if title %} | {{ title }}{% endif %}</title>
+    {% if title %}
+    <meta name="title" content="eleven25 | {{ title }}" />
+    {% endif %}{% if description %}<meta name="description" content="{{ description }}" />
+    {% endif %}
+    
     <link rel="icon" href="../assets/favicon.png">
 
     <link rel="stylesheet" href="../assets/fonts/pressstart2p.css">

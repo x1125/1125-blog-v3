@@ -1,6 +1,6 @@
 use git2::{Cred, PushOptions, RemoteCallbacks, Repository};
 use tide::{Request, Response, StatusCode};
-use crate::blog::config::{Config, REMOTE_NAME, LOCAL_REF};
+use crate::blog::config::{Config, REMOTE_NAME, REF_NAME};
 use crate::blog::error::http_error;
 
 pub async fn ctrl_push_remote(req: Request<Config>) -> tide::Result {
@@ -30,7 +30,7 @@ pub async fn ctrl_push_remote(req: Request<Config>) -> tide::Result {
         )
     });
     push_option.remote_callbacks(callbacks);
-    if let Err(e) = remote.push(&[LOCAL_REF], Some(&mut push_option)) {
+    if let Err(e) = remote.push(&[REF_NAME], Some(&mut push_option)) {
         return Ok(http_error(StatusCode::InternalServerError, format!("unable to push to remote: {}", e.message())));
     }
 

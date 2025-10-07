@@ -425,8 +425,10 @@
 
             apiRequest(`${BASE}/pull_remote`, {
                 method: 'POST',
-            }, 204).then((response) => {
-                document.getElementById('change-files').innerHTML = 'Done!';
+            }, 200).then((response) => {
+            	return response.json();
+            }).then((response) => {
+                document.getElementById('change-files').innerHTML = `Sucess: ${response.message}`;
             }).catch((err) => httpError(err))
         };
 
@@ -638,7 +640,7 @@
                         li_href.innerText += '/';
                     }
                     li_href.classList.add('has-text-warning');
-                    li_href.setAttribute('href', `#file=${entry['name']}&dir=${entry['is_dir']}`);
+                    li_href.setAttribute('href', `#file=${encodeURIComponent(entry['name'])}&dir=${entry['is_dir']}`);
                     li.append(li_href);
                     target.append(li);
                 });
@@ -659,7 +661,7 @@
                 const li = document.createElement('li');
                 const li_href = document.createElement('a');
                 li_href.innerText = entry['name'];
-                li_href.setAttribute('href', `#file=${entry['name']}`);
+                li_href.setAttribute('href', `#file=${encodeURIComponent(entry['name'])}`);
                 li.append(li_href);
                 if (entry['assets'].length > 0) {
                     const asset_list = document.createElement('ul');

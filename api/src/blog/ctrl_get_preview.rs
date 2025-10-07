@@ -22,7 +22,7 @@ pub async fn ctrl_get_preview(mut req: Request<Config>) -> tide::Result {
         }
     };
 
-    let adapter = SyntectAdapter::new(HIGHLIGHT_THEME);
+    let adapter = SyntectAdapter::new(Some(HIGHLIGHT_THEME));
     let mut generator = Generator::new(
         &tera,
         req.state().get_input_path(),
