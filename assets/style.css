@@ -61,14 +61,16 @@ pre.mail-graphics {
     max-height: 200px;
     overflow: hidden;
     color: #8c9b9d;
+    transition: max-height 0.25s ease-out;
+}
+
+.update-section .diff:hover {
+    max-height: 1000px;
+    transition: max-height 0.25s ease-in;
 }
 
 .update-section .diff span {
     font-family: inherit;
-}
-
-.update-section .diff:hover {
-    max-height: none;
 }
 
 /* resetting bulma for markdown view */

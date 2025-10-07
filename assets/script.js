@@ -92,11 +92,11 @@ function RenderMenu(postIndex) {
         if (document.querySelector(`a[href="#${path}"]`) === null) {
             let target = '#menuList';
             if (hasPrefix) {
-                target += ' ' + 'ul[data-id="' + prefix.join('/') + '"]';
+                target += ` ul[data-id="${prefix.join('/')}"]`;
 
                 if (document.querySelector(target) === null) {
-                    document.querySelector('li[data-id="' + prefix.join('/') + '"]').innerHTML +=
-                        '<ul data-id="' + prefix.join('/') + '"></ul>';
+                    document.querySelector(`li[data-id="${prefix.join('/')}"]`).innerHTML +=
+                        `<ul data-id="${prefix.join('/')}"></ul>`;
                 }
             }
             document.querySelector(target).innerHTML += NewMenuNode(path, nodeName);
@@ -114,8 +114,7 @@ function RenderMenu(postIndex) {
 }
 
 function NewMenuNode(link, title) {
-    title = title.split('_').join(' ');
-    return `<li data-id="${link}"><a href="#${link}">&raquo;&nbsp;${title}</a></li>`;
+    return `<li data-id="${link}"><a href="#${link}">&raquo;&nbsp;${title.split('_').join(' ')}</a></li>`;
 }
 
 function DoRouting() {
@@ -134,7 +133,7 @@ function DoRouting() {
     }
 
     if (firstElement === 'latest') {
-        RecentlyUpdatedAction();
+        RenderRecentlyUpdatedAction();
         return;
     }
 
@@ -160,7 +159,7 @@ function HttpGetRequest(url) {
     });
 }
 
-function RecentlyUpdatedAction() {
+function RenderRecentlyUpdatedAction() {
     ShowContentContainer('loading');
     HttpGetRequest('updates').then((updateData) => {
         renderUpdates(JSON.parse(updateData), document.getElementById('main-container'));
@@ -170,8 +169,6 @@ function RecentlyUpdatedAction() {
         SetMessageBox('danger', 'Unknown error', 'Please try reloading the page');
         ShowContentContainer('message');
     });
-
-    ShowContentContainer('main');
 }
 
 function RenderPostAction(mdPath) {
@@ -282,8 +279,7 @@ function renderUpdates(updates, target) {
     keys.sort((a, b) => (b - a)).forEach((key) => {
         let items = '';
         updates[key].forEach((item) => {
-            items += '<p>';
-            items += `<a href="#${item['path'].slice(0, -3)}">${item['path']}</a>`;
+            items += `<p><a href="#${item['path'].slice(0, -3)}">${item['path']}</a>`;
             switch (item['change']) {
                 case 'new':
                     items += '&nbsp;<span class="tag is-success"> new </span>';
@@ -292,9 +288,7 @@ function renderUpdates(updates, target) {
                     items += '&nbsp;<span class="tag is-primary"> updated </span>';
                     break;
             }
-            items += '<br>';
-            items += `<div class="column custom-box diff" data-key="${key}" data-path="${item['path']}">loading...</div>`;
-            items += '</p>';
+            items += `<br><div class="column custom-box diff" data-key="${key}" data-path="${item['path']}">loading...</div></p>`;
         });
 
         target.innerHTML += `<section class="section update-section">
