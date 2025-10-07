@@ -1,5 +1,6 @@
 mod blog;
 
+use std::env;
 use clap::Command;
 use std::path::Path;
 use std::process;
@@ -89,7 +90,7 @@ async fn webserver(config: Config) {
     app.with(AuthMiddleware {}).at("/commit").post(ctrl_commit);
     app.with(AuthMiddleware {}).at("/generate").post(ctrl_generate);
     app.with(AuthMiddleware {}).at("/push_remote").post(ctrl_push_remote);
-    if let Err(e) = app.listen("127.0.0.1:8080").await {
+    if let Err(e) = app.listen(env::var("LISTEN").unwrap_or(String::from("127.0.0.1:8080"))).await {
         eprintln!("{}", e)
     }
 }
