@@ -1,8 +1,8 @@
 .idea
 venv
 posts/
-post_index
+post_index.json
 update_diffs/
-updates
+updates.json
 package-lock.json
 node_modules

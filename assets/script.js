@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
     });
 
-    HttpGetRequest('post_index')
+    HttpGetRequest('post_index.json')
         .then((postIndexData) => {
             const postIndex = JSON.parse(postIndexData);
             Menu.render(postIndex);
@@ -267,7 +267,7 @@ function HttpGetRequest(url) {
 
 function RenderRecentlyUpdatedAction() {
     ShowContentContainer('loading');
-    HttpGetRequest('updates').then((updateData) => {
+    HttpGetRequest('updates.json').then((updateData) => {
         renderUpdates(JSON.parse(updateData), document.getElementById('main-container'));
         ShowContentContainer('main');
     }).catch((error) => {
@@ -437,7 +437,7 @@ ${items}
 </div>
 </section>`;
 
-        HttpGetRequest('update_diffs/' + key).then((diffData) => {
+        HttpGetRequest('update_diffs/' + key + '.json').then((diffData) => {
             JSON.parse(diffData).forEach((diff) => {
                 const target = document.querySelector(`div[data-key="${key}"][data-path="${diff.path}"]`);
                 target.innerHTML = diff.diff

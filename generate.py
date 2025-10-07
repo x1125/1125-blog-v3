@@ -27,7 +27,7 @@ def generate_index(path):
 
 
 post_index = sorted(generate_index(posts_path))
-with open('post_index', 'w') as f:
+with open('post_index.json', 'w') as f:
     f.write(json.dumps(post_index))
     f.close()
 
@@ -70,10 +70,10 @@ for commit in repo.iter_commits():
         timestamp = int(commit.committed_datetime.timestamp())
         changelist[timestamp] = commit_changelist
 
-        with open(f'update_diffs/{timestamp}', 'w') as f:
+        with open(f'update_diffs/{timestamp}.json', 'w') as f:
             f.write(json.dumps(commit_diffs))
             f.close()
 
-with open('updates', 'w') as f:
+with open('updates.json', 'w') as f:
     f.write(json.dumps(changelist))
     f.close()
