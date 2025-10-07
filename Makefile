@@ -4,6 +4,11 @@ all: compress-js compress-css
 
 compress-js:
 	terser -o assets/script.min.js assets/script.js
+	terser -o assets/markdown-it-attrs.min.js assets/markdown-it-attrs.js
+	terser -o assets/markdown-it-footnote-bulma.min.js assets/markdown-it-footnote-bulma.js
+	terser -o assets/markdown-it-tags.min.js assets/markdown-it-tags.js
+	terser -o assets/OrbitControls.min.js assets/OrbitControls.js
+	terser -o assets/STLLoader.min.js assets/STLLoader.js
 
 compress-css:
 	node-sass assets/style.css --output-style compressed > assets/style.min.css

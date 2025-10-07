@@ -2,6 +2,10 @@
 
 window.markdownitFootnoteBulma = function (Request) {
     return function (md) {
+        md.sanitize_title = function (title) {
+            return title.replace(/ /g, '_');
+        }
+
         md.renderer.rules.footnote_ref = function (tokens, idx, options, env, slf) {
             const id = slf.rules.footnote_anchor_name(tokens, idx, options, env, slf);
             const caption = slf.rules.footnote_caption(tokens, idx, options, env, slf);
@@ -38,12 +42,12 @@ window.markdownitFootnoteBulma = function (Request) {
 
         md.renderer.rules.heading_open = function(tokens, idx, options, env, slf) {
             const title = tokens[idx+1].content;
-            return '<div class="sectionLink"><' + tokens[idx].tag + ' id="' + Request.buildPath() + sectionDelimiter + title + '">';
+            return '<div class="sectionLink"><' + tokens[idx].tag + ' id="' + Request.buildPath() + sectionDelimiter + md.sanitize_title(title) + '">';
         };
 
         md.renderer.rules.heading_close = function(tokens, idx, options, env, slf) {
             const title = tokens[idx-1].content;
-            return '</' + tokens[idx].tag + '><a href="#' + Request.buildPath() + sectionDelimiter + title + '" class="is-hidden">&#182;</a></div>';
+            return '</' + tokens[idx].tag + '><a href="#' + Request.buildPath() + sectionDelimiter + md.sanitize_title(title) + '" class="is-hidden">&#182;</a></div>';
         };
 
         md.renderer.rules.text = function(tokens, idx, options, env, slf) {

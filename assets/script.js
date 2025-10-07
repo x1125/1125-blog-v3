@@ -388,11 +388,13 @@ function SetActiveMenuItem(routes) {
 }
 
 function ScrollToAnchor(id) {
-    const targetElement = document.getElementById(id);
+    const targetElement = document.getElementById(decodeURIComponent(id));
     if (!targetElement) {
         return;
     }
-    (document.scrollingElement || document.documentElement).scrollTop = targetElement.offsetTop;
+    window.setTimeout(()=>{
+        (document.scrollingElement || document.documentElement).scrollTop = targetElement.offsetTop;
+    }, 100) // no idea...
 }
 
 function InitIcons() {
