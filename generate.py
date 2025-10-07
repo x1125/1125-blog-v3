@@ -42,7 +42,13 @@ for commit in repo.iter_commits():
     commit_diffs = []
     for diff in commit.diff(other=(NULL_TREE if previous_commit is None else previous_commit), create_patch=True):
 
-        affected_file = diff.b_path + ('' if diff.a_path is None or diff.a_path == diff.b_path else ':' + diff.a_path)
+        affected = []
+        if diff.b_path is not None:
+            affected.append(diff.b_path)
+        if diff.a_path is not None and diff.a_path not in affected:
+            affected.append(diff.a_path)
+        affected_file = ':'.join(affected)
+        print(affected_file)
         if not affected_file.endswith('.md'):
             continue
         
