@@ -1,6 +1,8 @@
 use crate::blog::config::Config;
 use std::fs;
 use std::path::Path;
+use base64::Engine;
+use base64::engine::general_purpose;
 use tide::prelude::*;
 use tide::{Request, Response, StatusCode};
 use crate::blog::error::http_error;
@@ -20,7 +22,7 @@ pub async fn ctrl_upload(mut req: Request<Config>) -> tide::Result {
         content,
     } = req.body_json().await?;
 
-    let decoded_content = base64::decode(content)?;
+    let decoded_content = general_purpose::STANDARD.decode(content)?;
 
     let path_str = format!(
         "{}/{}",

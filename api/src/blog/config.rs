@@ -2,7 +2,9 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 pub const HIGHLIGHT_THEME: &str = "base16-ocean.dark";
-pub const DEFAULT_BRANCH: &str = "master";
+pub const DEFAULT_BRANCH: &str = "main";
+pub const REMOTE_NAME: &str = "ssh";
+pub const REMOTE_BRANCH: &str = "refs/remotes/ssh/main";
 
 #[derive(Debug, Clone)]
 pub struct ConfigError {
@@ -12,17 +14,19 @@ pub struct ConfigError {
 #[derive(Clone)]
 pub struct Config {
     pub working_path: String,
-    // FIXME: leak is required to satisfy 'static lifetime of State
     pub token: String,
+    pub git_ssh_key_path: String,
 }
 
 impl Config {
     pub fn new() -> Result<Self, ConfigError> {
         let working_path = path_from_env("WORKING_PATH")?;
         let token = path_from_env("TOKEN")?;
+        let git_ssh_key_path = path_from_env("GIT_SSH_KEY_PATH")?;
         let config = Config {
             working_path,
             token,
+            git_ssh_key_path,
         };
         Ok(config)
     }

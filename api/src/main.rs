@@ -18,6 +18,7 @@ use crate::blog::ctrl_get_files::ctrl_get_files;
 use crate::blog::ctrl_get_preview::ctrl_get_preview;
 use crate::blog::ctrl_new_file::ctrl_new_file;
 use crate::blog::ctrl_new_folder::ctrl_new_folder;
+use crate::blog::ctrl_pull_remote::ctrl_pull_remote;
 use crate::blog::ctrl_push_remote::ctrl_push_remote;
 use crate::blog::ctrl_rename::ctrl_rename;
 use crate::blog::ctrl_revert::ctrl_revert;
@@ -92,6 +93,7 @@ async fn webserver(config: Config) {
     app.at("/api/commit").post(ctrl_commit);
     app.at("/api/generate").post(ctrl_generate);
     app.at("/api/push_remote").post(ctrl_push_remote);
+    app.at("/api/pull_remote").post(ctrl_pull_remote);
 
     let listen = env::var("LISTEN").unwrap_or(String::from("127.0.0.1:8080"));
     let tide_cert_path = env::var("TIDE_CERT_PATH").unwrap_or(String::from(""));

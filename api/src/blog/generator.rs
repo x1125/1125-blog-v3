@@ -488,7 +488,7 @@ impl<'a> Generator<'a> {
     }
 
     fn check_unused_files(
-        &self,
+        &mut self,
         posts: &Vec<Post>,
         tag_list: &Vec<String>,
     ) -> Result<(), GeneratorError> {
@@ -544,7 +544,7 @@ impl<'a> Generator<'a> {
         for file in filtered_files.iter() {
             if file.starts_with("overview/") {
                 for tag in tag_list {
-                    if *file == format!("overview/{}.jpg", tag) {
+                    if *file == format!("overview/{}_cutout.jpg", tag) {
                         found_overview_files.push(file.to_string());
                     }
                 }
@@ -560,9 +560,10 @@ impl<'a> Generator<'a> {
         }
 
         if filtered_files.len() > 0 {
-            println!("found {} entries:", filtered_files.len());
+            let log_buffer = self.log_buffer.as_mut().unwrap();
+            let _ = log_buffer.write_all(format!("\nfound {} entries:\n", filtered_files.len()).as_bytes());
             for file in filtered_files.iter() {
-                println!("{}", file);
+                let _ = log_buffer.write_all(format!("{}\n", file).as_bytes());
             }
         }
 

@@ -1,9 +1,9 @@
-use git2::{Cred, PushOptions, RemoteCallbacks, Repository};
+use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use tide::{Request, Response, StatusCode};
 use crate::blog::config::{Config, REMOTE_BRANCH, REMOTE_NAME};
 use crate::blog::error::http_error;
 
-pub async fn ctrl_push_remote(req: Request<Config>) -> tide::Result {
+pub async fn ctrl_pull_remote(req: Request<Config>) -> tide::Result {
     let repo_path = req.state().get_input_path();
     let repo = match Repository::open(repo_path) {
         Ok(repo) => repo,
@@ -19,7 +19,7 @@ pub async fn ctrl_push_remote(req: Request<Config>) -> tide::Result {
         },
     };
 
-    let mut push_option = PushOptions::new();
+    let mut fetch_option = FetchOptions::new();
     let mut callbacks = RemoteCallbacks::new();
     callbacks.credentials(|_url, username_from_url, _allowed_types| {
         Cred::ssh_key(
@@ -29,9 +29,9 @@ pub async fn ctrl_push_remote(req: Request<Config>) -> tide::Result {
             None,
         )
     });
-    push_option.remote_callbacks(callbacks);
-    if let Err(e) = remote.push(&[REMOTE_BRANCH], Some(&mut push_option)) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to push to remote: {}", e.message())));
+    fetch_option.remote_callbacks(callbacks);
+    if let Err(e) = remote.fetch(&[REMOTE_BRANCH], Some(&mut fetch_option), None) {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to pull from remote: {}", e.message())));
     }
 
     Ok(Response::builder(StatusCode::NoContent).build())

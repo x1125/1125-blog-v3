@@ -415,7 +415,17 @@
 
             apiRequest(`${BASE}/push_remote`, {
                 method: 'POST',
-            }).then((response) => {
+            }, 204).then((response) => {
+                document.getElementById('change-files').innerHTML = 'Done!';
+            }).catch((err) => httpError(err))
+        };
+
+        window['pullRemote'] = () => {
+            document.getElementById('change-files').innerHTML = 'Loading...';
+
+            apiRequest(`${BASE}/pull_remote`, {
+                method: 'POST',
+            }, 204).then((response) => {
                 document.getElementById('change-files').innerHTML = 'Done!';
             }).catch((err) => httpError(err))
         };
@@ -512,8 +522,9 @@
 <div class="column">
     <a class="button is-success is-small" href="#stage=*">Stage all</a>
     <a class="button is-danger is-small" href="#unstage=*">Unstage all</a>
-    <a class="button is-primary is-small" onclick="generate()">Generate all</a>
-    <a class="button is-primary is-small" onclick="pushRemote()">Push remote</a>
+    <a class="button is-primary is-small" onclick="generate()">Generate</a>
+    <a class="button is-primary is-small" onclick="pushRemote()">&#8593; Push</a>
+    <a class="button is-primary is-small" onclick="pullRemote()">&#8595; Pull</a>
 </div>
 <div class="column" id="commit-area">
     <div class="field has-addons">
