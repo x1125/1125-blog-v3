@@ -21,3 +21,6 @@ lowercase-filenames:
 exif-scrub:
 	find posts/ -iname '*.jpg' | xargs exiftool -all=
 	find posts/ -iname '*.jpg_original' | xargs -r rm
+
+generate-preview-images:
+	. venv/bin/activate; grep -r '{.previewimage}' posts/ | python3 generate-preview-images.py

@@ -269,8 +269,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', function(e){
-        if(e.key === 'Escape' && RenderFrame.content != null) {
-            RenderFrame.content.parentNode.classList.remove('is-active');
+        const activeModal = document.querySelector('.modal.is-active');
+        if(e.key === 'Escape' && activeModal != null) {
+            activeModal.classList.remove('is-active');
         }
     });
 
@@ -403,9 +404,16 @@ function InitPostListeners() {
     });
 
     document.querySelectorAll('img.previewimage').forEach((el) => {
+        const origImageURL = el.getAttribute('src');
+        const lastSlashPos = origImageURL.lastIndexOf('/');
+        const previewImageURL = origImageURL.substr(0, lastSlashPos) + '/preview' + origImageURL.substr(lastSlashPos);
+        el.setAttribute('src', previewImageURL);
+        el.setAttribute('original-src', origImageURL);
         el.addEventListener('click', (e) => {
             e.preventDefault();
-            e.target.classList.toggle('active');
+            const imageModal = document.getElementById('ImageModal');
+            imageModal.classList.add('is-active');
+            imageModal.querySelector('.modal-content').innerHTML = '<img alt="" src="'+e.target.getAttribute('original-src')+'">';
         });
     });
 }
