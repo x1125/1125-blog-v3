@@ -1,7 +1,7 @@
 <a href="Software_project_history.html">Software project history</a>
 
 {% for tag, posts in tag_map %}
-    <div class="overview-item" style="min-height: 200px; background-image: linear-gradient(to top, transparent, #1f2424), linear-gradient(to left, transparent, #1f2424), url(../posts/overview/{{ tag }}.jpg); background-repeat: no-repeat">
+    <div class="overview-item" style="background-image: linear-gradient(to top, transparent, #1f2424), linear-gradient(to left, transparent, #1f2424), url(../posts/overview/{{ tag }}.jpg)">
         <h5>{{ tag | replace(from="_", to="-") }}</h5>
         <ul>
             {% for post in posts %}
