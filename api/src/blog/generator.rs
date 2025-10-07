@@ -4,10 +4,7 @@ use crate::blog::utils::find_files;
 use crate::Config;
 use comrak::adapters::SyntaxHighlighterAdapter;
 use comrak::plugins::syntect::SyntectAdapter;
-use comrak::{
-    markdown_to_html_with_plugins, ComrakExtensionOptions, ComrakOptions, ComrakPlugins,
-    ComrakRenderOptions,
-};
+use comrak::{markdown_to_html_with_plugins, ComrakOptions, ComrakPlugins, ExtensionOptionsBuilder, RenderOptionsBuilder};
 use regex::Regex;
 use rexiv2::Metadata;
 use serde::Serialize;
@@ -79,31 +76,33 @@ impl<'a> Generator<'a> {
         output_path: PathBuf,
         adapter: Option<&'a dyn SyntaxHighlighterAdapter>,
     ) -> Self {
+        let mut extensions_builder = ExtensionOptionsBuilder::default();
+        extensions_builder.
+            strikethrough(true).
+            tagfilter(false).
+            table(true).
+            autolink(false).
+            tasklist(false).
+            superscript(false).
+            footnotes(true).
+            description_lists(false);
+        let extensions = extensions_builder.build().expect("unable to build extensions builder");
+
+        let mut render_options_builder = RenderOptionsBuilder::default();
+        render_options_builder.
+            hardbreaks(false).
+            github_pre_lang(false).
+            width(0).
+            unsafe_(true).
+            escape(false).
+            sourcepos(false);
+        let render_options = render_options_builder.build().expect("unable to build render options builder");
+
         // configure markdown renderer
         let options = ComrakOptions {
-            extension: ComrakExtensionOptions {
-                strikethrough: true,
-                tagfilter: false,
-                table: true,
-                autolink: false,
-                tasklist: false,
-                superscript: false,
-                header_ids: None,
-                footnotes: true,
-                description_lists: false,
-                front_matter_delimiter: None,
-            },
+            extension: extensions,
             parse: Default::default(),
-            render: ComrakRenderOptions {
-                hardbreaks: false,
-                github_pre_lang: false,
-                width: 0,
-                // required for .has-text-warning on bold text in "De-obfuscating nasty Javascript"
-                // *foo*{.has-text-warning} or similar would be nice
-                unsafe_: true,
-                escape: false,
-                list_style: Default::default(),
-            },
+            render: render_options,
         };
 
         let mut generator = Generator {
@@ -190,7 +189,7 @@ impl<'a> Generator<'a> {
                         "unable to generate post {}: {}",
                         file.name,
                         e.to_string()
-                    )))
+                    )));
                 }
             };
             self.log_time(None, false);
@@ -239,7 +238,7 @@ impl<'a> Generator<'a> {
                 None => {
                     return Err(GeneratorError::new(String::from(
                         "custom_post_content not found",
-                    )))
+                    )));
                 }
             };
 
@@ -278,7 +277,7 @@ impl<'a> Generator<'a> {
                 None => {
                     return Err(GeneratorError::new(String::from(
                         "custom_post_content not found",
-                    )))
+                    )));
                 }
             };
 
@@ -322,7 +321,7 @@ impl<'a> Generator<'a> {
                 return Err(GeneratorError::new(format!(
                     "unable to generate post preview: {}",
                     e.to_string()
-                )))
+                )));
             }
         };
 
@@ -357,7 +356,6 @@ impl<'a> Generator<'a> {
                 self.last_instant = Instant::now();
             }
         }
-
     }
 
     pub fn generate_preview_images(&self, posts: &Vec<Post>) {
@@ -373,7 +371,7 @@ impl<'a> Generator<'a> {
                                 "Unable to create output directory: {}",
                                 output_base_path.to_string_lossy()
                             )
-                            .as_str(),
+                                .as_str(),
                         );
                     }
                     let mut input_path = PathBuf::from(self.output_path.clone());
@@ -410,7 +408,7 @@ impl<'a> Generator<'a> {
                             "Unable to get metadata for {}: {}",
                             image_path.to_string_lossy(),
                             e.to_string()
-                        )))
+                        )));
                     }
                 };
                 if meta.has_exif() {
@@ -421,7 +419,7 @@ impl<'a> Generator<'a> {
                             return Err(GeneratorError::new(format!(
                                 "Unable to clear Exif data: {}",
                                 e.to_string()
-                            )))
+                            )));
                         }
                     }
                 }
@@ -645,7 +643,7 @@ impl<'a> Generator<'a> {
                 None => {
                     return Err(GeneratorError::new(String::from(
                         "Image starting position not found",
-                    )))
+                    )));
                 }
             };
             md.replace_range(start_pos..start_pos + from.len(), to.as_str());
@@ -698,7 +696,7 @@ impl<'a> Generator<'a> {
                 None => {
                     return Err(GeneratorError::new(String::from(
                         "Headline starting position not found",
-                    )))
+                    )));
                 }
             };
             md.replace_range(start_pos..start_pos + from.len(), to.as_str());
@@ -1017,7 +1015,7 @@ impl<'a> Generator<'a> {
                         return Err(GeneratorError::new(format!(
                             "found known attribute without handler '{}' in {}",
                             tag.name, filename
-                        )))
+                        )));
                     }
                 }
 

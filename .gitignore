@@ -1,5 +1,7 @@
 .idea
 api/target/
+api/cert.pem
+api/key.pem
 public/posts/
 public/p/
 package-lock.json
