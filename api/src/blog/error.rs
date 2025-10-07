@@ -13,7 +13,7 @@ impl Display for GeneratorError {
 }
 
 impl GeneratorError {
-    pub(crate) fn new(message: String) -> GeneratorError {
+    pub fn new(message: String) -> GeneratorError {
         return GeneratorError {
             message,
         };

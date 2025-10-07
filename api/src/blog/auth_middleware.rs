@@ -1,6 +1,6 @@
 use tide::{Middleware, Next, Request, Response, StatusCode};
 use tide::http::mime;
-use crate::lib::config::ConfigType;
+use crate::blog::config::ConfigType;
 
 const AUTH_HEADER_NAME: &str = "Authorization";
 

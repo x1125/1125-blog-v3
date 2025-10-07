@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>eleven25</title>
+
+    <link rel="icon" href="assets/favicon.png">
+
+    <link rel="stylesheet" href="assets/fonts/pressstart2p.css">
+    <link rel="stylesheet" href="assets/bulmaswatch.custom.min.css">
+    <link rel="stylesheet" href="assets/style.min.css">
+    <style>
+        ul#entries {
+            padding-left: 0;
+            list-style: none;
+            font-size: .7em;
+        }
+
+        ul#entries li ul {
+            padding-left: 1em;
+        }
+
+        #content-filename {
+            font-size: 0.7em;
+            display: inline-block;
+            padding: 5px;
+            border: 1px solid #b0b0b0;
+        }
+
+        #editor-content {
+            max-width: Calc(100% - 80px);
+        }
+
+        #editor-content textarea {
+            min-height: 400px;
+        }
+
+        #preview {
+            width: Calc(100% - 80px);
+            min-height: 600px;
+        }
+
+        .tabs li.is-active a {
+            border-bottom-color: #6a8db2;
+            color: #6a8db2;
+        }
+
+        #file-upload {
+            max-width: 0;
+        }
+
+        #change-table {
+            font-size: 0.7em;
+        }
+
+        .diff-viewer {
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="column has-box-shadow has-text-centered" id="start-content-hero" style="margin: 20px">
+    <div id="content" class="has-text-left content">
+        <div class="columns">
+            <div class="column is-one-fifth">
+                Entries
+                <button class="button is-success is-small" onclick="newFile()">+ File</button>
+                <button class="button is-success is-small" onclick="newFolder()">+ Folder</button>
+                <button class="button is-primary is-small" onclick="newCommit()">Commit</button>
+                <hr>
+                <ul id="entries"></ul>
+            </div>
+            <div class="column is-four-fifths">
+                Content
+                <span id="content-filename" class="is-hidden"></span>
+
+                <span id="content-buttons" class="is-hidden">
+                    <button class="button is-success is-small is-hidden"
+                            onclick="document.getElementById('file-upload').click()"
+                            id="upload-button">Upload</button>
+                    <button class="button is-primary is-small" onclick="renameContent()">Rename</button>
+                    <button class="button is-danger is-small" onclick="deleteContent()">Delete</button>
+                    <input type="file" class="is-invisible" id="file-upload">
+                </span>
+                <hr>
+                <div id="editor-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const BASE = `http://localhost:8080`;
+
+        const setCurrentFilename = (file) => {
+            document.getElementById('content-filename').innerText = file;
+            document.getElementById('content-filename').classList.remove('is-hidden');
+            document.getElementById('content-buttons').classList.remove('is-hidden');
+
+            if (file.split('/').length > 1) {
+                document.getElementById('upload-button').classList.add('is-hidden');
+            } else {
+                document.getElementById('upload-button').classList.remove('is-hidden');
+            }
+        };
+
+        const unsetCurrentFilename = () => {
+            document.getElementById('content-filename').innerText = "";
+            document.getElementById('content-filename').classList.add('is-hidden');
+            document.getElementById('content-buttons').classList.add('is-hidden');
+            document.getElementById('upload-button').classList.add('is-hidden');
+        };
+
+        const getCurrentFilename = () => {
+            return document.getElementById('content-filename').innerText;
+        };
+
+        window['toggleTab'] = (elem, target_id, cb) => {
+            for (let li of elem.parentNode.children) {
+                let id = li.getAttribute('data-id');
+
+                if (id === target_id) {
+                    li.classList.add('is-active');
+                    document.getElementById(`${id}-tab`).classList.remove('is-hidden');
+                } else {
+                    li.classList.remove('is-active');
+                    document.getElementById(`${id}-tab`).classList.add('is-hidden');
+                }
+            }
+
+            if (cb) {
+                cb(target_id);
+            }
+        }
+
+        const httpError = (e) => {
+            console.log(e);
+        };
+
+        const httpUnexpected = (r) => {
+            console.log(r);
+            r.text()
+                .then((data) => {
+                    alert(`Unexpected response: ${r.status}: ${data}`);
+                }).catch(() => {
+                alert(`Unexpected response: ${r.status} - ${r.statusText}`);
+            });
+        };
+
+        window['editorTabsCb'] = (id) => {
+            if (id === 'preview') {
+                const content = document.getElementById('textarea').value;
+                const iframe = document.getElementById('preview');
+
+                iframe.contentWindow.document.open();
+                iframe.contentWindow.document.write('Loading...');
+                iframe.contentWindow.document.close();
+
+                fetch(`${BASE}/preview`, {
+                    method: 'POST',
+                    body: JSON.stringify({'content': content}),
+                }).then((response) => {
+                    if (response.status !== 200) {
+                        httpUnexpected(response);
+                        return;
+                    }
+
+                    return response.text();
+                }).then((data) => {
+                    iframe.contentWindow.document.open();
+                    iframe.contentWindow.document.write(data);
+                    iframe.contentWindow.document.close();
+                }).catch((err) => {
+                    iframe.contentWindow.document.open();
+                    iframe.contentWindow.document.write('Unable to load: ' + err);
+                    iframe.contentWindow.document.close();
+                });
+            }
+        }
+
+        window['newFile'] = () => {
+            const file = prompt("New file name");
+            if (file && file.length > 0) {
+                fetch(`${BASE}/file/new`, {
+                    method: 'POST',
+                    body: JSON.stringify({'file': file}),
+                }).then((response) => {
+                    if (response.status !== 204) {
+                        httpUnexpected(response);
+                        return;
+                    }
+
+                    location.hash = `file=${file}`;
+                    location.reload();
+                }).catch((err) => {
+                    httpError(err);
+                })
+            }
+        };
+
+        window['newFolder'] = () => {
+            const folder = prompt("New folder name");
+            if (folder && folder.length > 0) {
+                fetch(`${BASE}/folder/new`, {
+                    method: 'POST',
+                    body: JSON.stringify({'folder': folder}),
+                }).then((response) => {
+                    if (response.status !== 204) {
+                        httpUnexpected(response);
+                        return;
+                    }
+
+                    location.hash = `file=${folder}`;
+                    location.reload();
+                }).catch((err) => {
+                    httpError(err);
+                })
+            }
+        };
+
+        window['newCommit'] = () => {
+            location.hash = 'commit';
+            location.reload();
+        };
+
+        window['saveContent'] = () => {
+            const file = getCurrentFilename();
+            const content = document.getElementById('textarea').value;
+            const saveButton = document.getElementById('save-button');
+            saveButton.innerText = 'Saving...';
+            saveButton.setAttribute('disabled', 'disabled');
+
+            fetch(`${BASE}/save`, {
+                method: 'POST',
+                body: JSON.stringify({'file': file, 'content': content}),
+            }).then((response) => {
+                if (response.status !== 204) {
+                    httpUnexpected(response);
+                    return;
+                }
+            }).catch((err) => {
+                httpError(err);
+            }).finally(() => {
+                saveButton.innerText = 'Save';
+                saveButton.removeAttribute('disabled');
+            });
+        };
+
+        const uploadContent = (e) => {
+            const tmp = getCurrentFilename().split('.');
+            const targetDir = tmp.slice(0, tmp.length - 1).join('.');
+            const uploadFile = document.getElementById('file-upload').files[0];
+            const targetFile = targetDir + '/' + uploadFile.name;
+            const uploadButton = document.getElementById('upload-button');
+            uploadButton.innerText = 'Uploading...';
+            uploadButton.setAttribute('disabled', 'disabled');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                fetch(`${BASE}/upload`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        'content': btoa(e.target.result),
+                        'name': targetFile,
+                        'size': uploadFile.size,
+                    }),
+                }).then((response) => {
+                    if (response.status !== 201) {
+                        httpUnexpected(response);
+                        return;
+                    }
+
+                    location.hash = `file=${targetFile}`;
+                    location.reload();
+                }).catch((err) => {
+                    httpError(err);
+                }).finally(() => {
+                    uploadButton.innerText = 'Upload';
+                    uploadButton.removeAttribute('disabled');
+                });
+            };
+            reader.readAsBinaryString(e.target.files[0])
+        };
+
+        window['renameContent'] = () => {
+            const file = getCurrentFilename();
+            const newFile = prompt("New file name", file);
+            if (newFile && newFile.length > 0) {
+                fetch(`${BASE}/rename`, {
+                    method: 'POST',
+                    body: JSON.stringify({'file': file, 'new_file': newFile}),
+                }).then((response) => {
+                    if (response.status !== 204) {
+                        httpUnexpected(response);
+                        return;
+                    }
+
+                    location.hash = location.hash.replace(file, newFile);
+                    location.reload();
+                }).catch((err) => {
+                    httpError(err);
+                })
+            }
+        };
+
+        window['deleteContent'] = () => {
+            const file = getCurrentFilename();
+            if (confirm(`Delete file "${file}"?`)) {
+                fetch(`${BASE}/delete`, {
+                    method: 'POST',
+                    body: JSON.stringify({'file': file}),
+                }).then((response) => {
+                    if (response.status !== 204) {
+                        httpUnexpected(response);
+                        return;
+                    }
+
+                    location.hash = '';
+                    location.reload();
+                }).catch((err) => {
+                    httpError(err);
+                })
+            }
+        };
+
+        const viewContent = (file, is_dir) => {
+            const target = document.getElementById('editor-content');
+            target.innerHTML = '';
+
+            const ext = file.split('.')[file.split('.').length - 1].toLowerCase();
+
+            setCurrentFilename(file);
+
+            if (['jpg', 'png'].indexOf(ext) !== -1) {
+                const img = document.createElement('img');
+                img.setAttribute('src', `posts/${file}`);
+                target.append(img);
+            } else if (is_dir) {
+                target.innerHTML = 'No preview.';
+            } else {
+                target.innerHTML = `<div class="tabs is-small">
+  <ul>
+    <li class="is-active" onclick="toggleTab(this, 'editor', editorTabsCb)" data-id="editor"><a>Editor</a></li>
+    <li onclick="toggleTab(this, 'preview', editorTabsCb)" data-id="preview"><a>Preview</a></li>
+  </ul>
+</div>
+<div id="editor-tab">
+    <textarea class="textarea" id="textarea">Loading...</textarea>
+    <br>
+    <button class="button" id="save-button" onclick="saveContent()">Save</button>
+</div>
+<div id="preview-tab" class="is-hidden"><iframe id="preview"></iframe></div>`;
+
+                const textarea = document.getElementById('textarea');
+                fetch(`posts/${file}`).then((response) => {
+                    if (response.status !== 200) {
+                        httpUnexpected(response);
+                        return;
+                    }
+                    return response.text();
+                }).then((data) => {
+                    textarea.value = data;
+                }).catch((err) => {
+                    textarea.value = 'Unable to load: ' + err;
+                    textarea.setAttribute('disabled', 'disabled');
+                });
+            }
+        };
+
+        const toggleStage = (file, stage) => {
+            document.getElementById('change-files').innerHTML = 'Loading...';
+
+            fetch(`${BASE}/stage`, {
+                method: 'POST',
+                body: JSON.stringify({'file': file, 'stage': stage}),
+            }).then((response) => {
+                if (response.status !== 204) {
+                    httpUnexpected(response);
+                    return;
+                }
+
+                newCommit();
+            }).catch((err) => {
+                httpError(err);
+            })
+        }
+
+        const revert = (file) => {
+            document.getElementById('change-files').innerHTML = 'Loading...';
+
+            fetch(`${BASE}/revert`, {
+                method: 'POST',
+                body: JSON.stringify({'file': file}),
+            }).then((response) => {
+                if (response.status !== 204) {
+                    httpUnexpected(response);
+                    return;
+                }
+
+                newCommit();
+            }).catch((err) => {
+                httpError(err);
+            })
+        }
+
+        const colorize = (content) => {
+            let newContent = content.split("\n");
+            newContent.forEach((part, index) => {
+                if (part.startsWith('+')) {
+                    this[index] = `<span class="has-text-success">${part}</span>`;
+                } else if (part.startsWith('-')) {
+                    this[index] = `<span class="has-text-danger">${part}</span>`;
+                } else {
+                    this[index] = part;
+                }
+            }, newContent);
+            return newContent.join("\n");
+        }
+
+        const getDiff = (name, diffs) => {
+            for (const diff of diffs) {
+                if (diff['name'] === name) {
+                    return colorize(diff['content']);
+                }
+            }
+            return 'Not available.';
+        };
+
+        const viewCommit = () => {
+            document.getElementById('editor-content').innerHTML = `<div>
+<a class="button is-success is-small" href="#stage=*">Stage all</a>
+<a class="button is-danger is-small" href="#unstage=*">Unstage all</a>
+</div><br>
+<div id="change-files">Loading...</div>`;
+            const target = document.getElementById('change-files');
+
+            fetch(`${BASE}/changes`).then((response) => {
+                if (response.status !== 200) {
+                    httpUnexpected(response);
+                    return;
+                }
+
+                return response.json();
+            }).then((data) => {
+                target.innerHTML = `<table class="table" id="change-table"><thead><th></th><th>File</th><th>Action</th></thead><tbody id="change-table-body"></tbody></table>`;
+                const table_body = document.getElementById('change-table-body');
+                data['changes'].sort((a, b) => {
+                    if (a['staged'] === b['staged']) {
+                        if (a['tracked'] === b['tracked']) {
+                            if (a['name'] === b['name']) {
+                                return 0;
+                            } else {
+                                return a['name'] > b['name'] ? 1 : -1;
+                            }
+                        } else {
+                            return a['tracked'] ? -1 : 1;
+                        }
+                    } else {
+                        return a['staged'] ? -1 : 1;
+                    }
+                });
+
+                data['changes'].forEach((change) => {
+                    let name = change['name'];
+                    if (change['old_name']) {
+                        name = `${change['old_name']} -> ${name}`;
+                    }
+                    let tracked = '';
+                    if (!change['tracked']) {
+                        tracked = ' [<abbr title="untracked">&#x2753;</abbr>]';
+                    }
+                    table_body.innerHTML += `<tr>
+<td>${change['change']}${tracked}</td>
+<td>
+<a onclick="this.parentElement.parentElement.querySelector('div.diff-viewer').classList.toggle('is-hidden')"><span class="has-text-${change['staged'] ? 'success' : 'danger'}">${name}</span></a>
+<div class="diff-viewer is-hidden"><pre>${getDiff(change['name'], data['diffs'])}</pre></div>
+</td>
+<td>
+<a href="#${change['staged'] ? 'unstage' : 'stage'}=${change['name']}">${change['staged'] ? '[UNSTAGE]' : '[STAGE]'}</a>
+<a href="#revert=${change['name']}">[REVERT]</a>
+</td>
+</tr>`;
+                });
+            }).catch((err) => {
+                httpError(err);
+            });
+        };
+
+        const router = () => {
+            const params = new Proxy(new URLSearchParams(location.hash.replace('#', '?')), {
+                get: (searchParams, prop) => searchParams.get(prop),
+            });
+
+            if (params.file) {
+                viewContent(params.file, params['dir']);
+            }
+
+            if (params.stage) {
+                toggleStage(params.stage, true);
+            }
+
+            if (params.unstage) {
+                toggleStage(params.unstage, false);
+            }
+
+            if (params.revert) {
+                revert(params.revert);
+            }
+
+            if (params.commit === "") {
+                viewCommit();
+            }
+        };
+
+        window.addEventListener('hashchange', router);
+
+        document.getElementById('file-upload').addEventListener('change', uploadContent);
+
+        fetch(`${BASE}/files`).then((response) => {
+            if (response.status !== 200) {
+                httpUnexpected(response);
+                return;
+            }
+
+            return response.json();
+        }).then((data) => {
+            const target = document.getElementById('entries');
+
+            // unknown entries
+            data['unknown_entries'].sort((a, b) => {
+                if (a['name'] === b['name']) {
+                    return 0;
+                } else {
+                    return a['name'] > b['name'] ? 1 : -1;
+                }
+            });
+
+            if (data['unknown_entries'].length > 0) {
+                data['unknown_entries'].forEach((entry) => {
+                    const li = document.createElement('li');
+                    const li_href = document.createElement('a');
+                    li_href.innerText = entry['name'];
+                    if (entry['is_dir']) {
+                        li_href.innerText += '/';
+                    }
+                    li_href.classList.add('has-text-warning');
+                    li_href.setAttribute('href', `#file=${entry['name']}&dir=${entry['is_dir']}`);
+                    li.append(li_href);
+                    target.append(li);
+                });
+                const hr = document.createElement('hr');
+                target.append(hr);
+            }
+
+            // regular entries
+            data['entries'].sort((a, b) => {
+                if (a['name'] === b['name']) {
+                    return 0;
+                } else {
+                    return a['name'] > b['name'] ? 1 : -1;
+                }
+            });
+
+            data['entries'].forEach((entry) => {
+                const li = document.createElement('li');
+                const li_href = document.createElement('a');
+                li_href.innerText = entry['name'];
+                li_href.setAttribute('href', `#file=${entry['name']}`);
+                li.append(li_href);
+                if (entry['assets'].length > 0) {
+                    const asset_list = document.createElement('ul');
+                    entry['assets']
+                        .filter(elem => elem.indexOf('/preview/') === -1)
+                        .forEach((asset) => {
+                            const asset_li = document.createElement('li');
+                            const asset_href = document.createElement('a');
+                            asset_href.innerText = asset.replace(entry['name'].replace('.md', ''), '-');
+                            asset_href.setAttribute('href', `#file=${asset}`);
+                            asset_li.append(asset_href);
+                            asset_list.append(asset_li);
+                        });
+                    li.append(asset_list);
+                }
+                target.append(li);
+            });
+
+            router();
+        }).catch((err) => {
+            console.error(err);
+        });
+
+    }, {once: true});
+</script>
+</body>
+</html>

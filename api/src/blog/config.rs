@@ -1,7 +1,7 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
-pub static CONTENT_NAMES: &'static [&str] = &["posts", "tags"];
+pub const HIGHLIGHT_THEME: &str = "base16-ocean.dark";
 
 #[derive(Debug, Clone)]
 pub struct ConfigError {
@@ -10,26 +10,27 @@ pub struct ConfigError {
 
 #[derive(Clone)]
 pub struct Config {
-    pub working_path: PathBuf,
+    pub working_path: String,
     // FIXME: leak is required to satisfy 'static lifetime of State
     pub token: &'static str,
 }
 
 impl Config {
     pub fn new() -> Result<Self, ConfigError> {
+        let working_path = path_from_env("WORKING_PATH")?;
         let config = Config {
-            working_path: path_from_env("WORKING_PATH")?,
+            working_path,
             token: "",
         };
         Ok(config)
     }
 
     pub fn get_input_path(&self) -> PathBuf {
-        self.working_path.join(Path::new("posts"))
+        Path::new(self.working_path.as_str()).join(Path::new("posts"))
     }
 
     pub fn get_output_path(&self) -> PathBuf {
-        self.working_path.join(Path::new("p"))
+        Path::new(self.working_path.as_str()).join(Path::new("p"))
     }
 }
 
@@ -50,8 +51,8 @@ fn get_required_env(name: &str) -> Result<String, ConfigError> {
     }
 }
 
-fn path_from_env(name: &str) -> Result<PathBuf, ConfigError> {
+fn path_from_env(name: &str) -> Result<String, ConfigError> {
     let relative_path = get_required_env(name)?;
     let expanded_path = shellexpand::full(&relative_path).unwrap().into_owned();
-    Ok(Path::new(expanded_path.as_str()).to_owned())
+    Ok(expanded_path)
 }
