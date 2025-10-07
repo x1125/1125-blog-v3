@@ -1,6 +1,6 @@
 .PHONY: all compress-js compress-css
 
-all: compress-js compress-css
+all: compress-js compress-css prepare-images generate-preview-images check-references
 
 compress-js:
 	terser -o assets/script.min.js assets/script.js
@@ -24,3 +24,6 @@ exif-scrub:
 
 generate-preview-images:
 	. venv/bin/activate; grep -r '{.previewimage}' posts/ | python3 generate-preview-images.py
+
+check-references:
+	. venv/bin/activate; find posts/ -name '*.md' | python3 check-references.py

@@ -1,6 +1,5 @@
 import fileinput
 import os
-import subprocess
 
 for line in fileinput.input():
     orig_image_src = line.strip().split('(')[1].split(')')[0]
