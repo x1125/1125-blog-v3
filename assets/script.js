@@ -275,6 +275,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    for (let item of document.getElementsByClassName('modal-background')) {
+        item.addEventListener('click', (e)=>{
+            e.target.parentNode.classList.remove('is-active');
+        });
+    }
+
+    for (let item of document.getElementsByClassName('modal-content')) {
+        item.addEventListener('click', (e)=>{
+            if (e.target.getAttribute('class') === 'modal-content') {
+                e.target.parentNode.classList.remove('is-active');
+            }
+        });
+    }
+
     document.querySelector('aside.menu p.menu-label').addEventListener('click', ()=>{
         Menu.toggleCollapse();
     });
