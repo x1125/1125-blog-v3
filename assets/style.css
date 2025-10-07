@@ -119,6 +119,10 @@ pre.mail-graphics {
     padding: 0.5rem 0 1.5rem 0;
 }
 
+.update-section div p a {
+    word-break: break-all;
+}
+
 .update-section .diff {
     white-space: pre-line;
     overflow: hidden;
