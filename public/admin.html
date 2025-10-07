@@ -18,6 +18,10 @@
             font-size: .7em;
         }
 
+        ul#entries ul {
+            list-style: none;
+        }
+
         ul#entries li ul {
             padding-left: 1em;
         }
@@ -58,6 +62,31 @@
         .diff-viewer {
             margin-top: 5px;
         }
+
+        .diff-viewer pre ol {
+            margin-left: 5em;
+        }
+
+        .diff-viewer pre ol li {
+            white-space: break-spaces;
+            border-left: 1px solid #888;
+            padding-left: 1em;
+        }
+
+        #commit-area .control {
+            font-size: inherit;
+        }
+
+        input#commit_message {
+            border: 1px solid transparent;
+        }
+
+        input#commit_message:focus {
+            outline: none;
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 .125em rgba(26, 188, 156, .25);
+            z-index: 3;
+        }
     </style>
 </head>
 <body>
@@ -65,15 +94,15 @@
 <div class="column has-box-shadow has-text-centered" id="start-content-hero" style="margin: 20px">
     <div id="content" class="has-text-left content">
         <div class="columns">
-            <div class="column is-one-fifth">
+            <div class="column is-one-quarter">
                 Entries
-                <button class="button is-success is-small" onclick="newFile()">+ File</button>
-                <button class="button is-success is-small" onclick="newFolder()">+ Folder</button>
-                <button class="button is-primary is-small" onclick="newCommit()">Commit</button>
+                <button class="button is-success is-small" onclick="newFile()">+File</button>
+                <button class="button is-success is-small" onclick="newFolder()">+Dir</button>
+                <button class="button is-primary is-small" onclick="viewStaging()">Staging</button>
                 <hr>
                 <ul id="entries"></ul>
             </div>
-            <div class="column is-four-fifths">
+            <div class="column">
                 Content
                 <span id="content-filename" class="is-hidden"></span>
 
@@ -137,6 +166,67 @@
             }
         }
 
+        const setCookie = (cname, cvalue, exdays) => {
+            const d = new Date();
+            d.setTime(d.getTime() + (24 * 60 * 60 * 1000));
+            let expires = 'expires=' + d.toUTCString();
+            document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
+        };
+
+        const getCookie = (cname) => {
+            let name = cname + "=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return '';
+        };
+
+        let password = getCookie('password');
+        const askPassword = () => {
+            password = prompt('Password: ');
+            setCookie('password', password);
+        };
+
+        let retryCount = 0;
+        const apiRequest = (path, options = {}, expectCode = 200) => {
+            if (retryCount >= 3) {
+                console.error('retry count exceeded');
+                return;
+            }
+
+            if (!options.hasOwnProperty('headers')) {
+                options['headers'] = {};
+            }
+            options.headers['Authorization'] = `Token ${password}`;
+
+            return fetch(path, options)
+                .then(res => {
+                    if (res.status === 401) {
+                        retryCount++;
+                        askPassword();
+                        return apiRequest(path, options, expectCode);
+                    }
+
+                    if (res.status !== expectCode) {
+                        retryCount++;
+                        httpUnexpected(res);
+                        return;
+                    }
+
+                    retryCount = 0;
+                    return res;
+                })
+                .catch(error => console.error(error.message));
+        };
+
         const httpError = (e) => {
             console.log(e);
         };
@@ -160,15 +250,10 @@
                 iframe.contentWindow.document.write('Loading...');
                 iframe.contentWindow.document.close();
 
-                fetch(`${BASE}/preview`, {
+                apiRequest(`${BASE}/preview`, {
                     method: 'POST',
                     body: JSON.stringify({'content': content}),
                 }).then((response) => {
-                    if (response.status !== 200) {
-                        httpUnexpected(response);
-                        return;
-                    }
-
                     return response.text();
                 }).then((data) => {
                     iframe.contentWindow.document.open();
@@ -185,45 +270,31 @@
         window['newFile'] = () => {
             const file = prompt("New file name");
             if (file && file.length > 0) {
-                fetch(`${BASE}/file/new`, {
+                apiRequest(`${BASE}/file/new`, {
                     method: 'POST',
                     body: JSON.stringify({'file': file}),
-                }).then((response) => {
-                    if (response.status !== 204) {
-                        httpUnexpected(response);
-                        return;
-                    }
-
+                }, 204).then((response) => {
                     location.hash = `file=${file}`;
                     location.reload();
-                }).catch((err) => {
-                    httpError(err);
-                })
+                }).catch((err) => httpError(err))
             }
         };
 
         window['newFolder'] = () => {
             const folder = prompt("New folder name");
             if (folder && folder.length > 0) {
-                fetch(`${BASE}/folder/new`, {
+                apiRequest(`${BASE}/folder/new`, {
                     method: 'POST',
                     body: JSON.stringify({'folder': folder}),
-                }).then((response) => {
-                    if (response.status !== 204) {
-                        httpUnexpected(response);
-                        return;
-                    }
-
+                }, 204).then((response) => {
                     location.hash = `file=${folder}`;
                     location.reload();
-                }).catch((err) => {
-                    httpError(err);
-                })
+                }).catch((err) => httpError(err))
             }
         };
 
-        window['newCommit'] = () => {
-            location.hash = 'commit';
+        window['viewStaging'] = () => {
+            location.hash = 'staging';
             location.reload();
         };
 
@@ -234,17 +305,14 @@
             saveButton.innerText = 'Saving...';
             saveButton.setAttribute('disabled', 'disabled');
 
-            fetch(`${BASE}/save`, {
+            apiRequest(`${BASE}/save`, {
                 method: 'POST',
                 body: JSON.stringify({'file': file, 'content': content}),
-            }).then((response) => {
-                if (response.status !== 204) {
-                    httpUnexpected(response);
-                    return;
+            }, 204).then((response) => {
                 }
-            }).catch((err) => {
-                httpError(err);
-            }).finally(() => {
+            ).catch(
+                (err) => httpError(err)
+            ).finally(() => {
                 saveButton.innerText = 'Save';
                 saveButton.removeAttribute('disabled');
             });
@@ -261,24 +329,19 @@
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                fetch(`${BASE}/upload`, {
+                apiRequest(`${BASE}/upload`, {
                     method: 'POST',
                     body: JSON.stringify({
                         'content': btoa(e.target.result),
                         'name': targetFile,
                         'size': uploadFile.size,
-                    }),
+                    }, 201),
                 }).then((response) => {
-                    if (response.status !== 201) {
-                        httpUnexpected(response);
-                        return;
-                    }
-
                     location.hash = `file=${targetFile}`;
                     location.reload();
-                }).catch((err) => {
-                    httpError(err);
-                }).finally(() => {
+                }).catch(
+                    (err) => httpError(err)
+                ).finally(() => {
                     uploadButton.innerText = 'Upload';
                     uploadButton.removeAttribute('disabled');
                 });
@@ -290,41 +353,68 @@
             const file = getCurrentFilename();
             const newFile = prompt("New file name", file);
             if (newFile && newFile.length > 0) {
-                fetch(`${BASE}/rename`, {
+                apiRequest(`${BASE}/rename`, {
                     method: 'POST',
                     body: JSON.stringify({'file': file, 'new_file': newFile}),
-                }).then((response) => {
-                    if (response.status !== 204) {
-                        httpUnexpected(response);
-                        return;
-                    }
-
+                }, 204).then((response) => {
                     location.hash = location.hash.replace(file, newFile);
                     location.reload();
-                }).catch((err) => {
-                    httpError(err);
-                })
+                }).catch((err) => httpError(err))
             }
         };
 
         window['deleteContent'] = () => {
             const file = getCurrentFilename();
             if (confirm(`Delete file "${file}"?`)) {
-                fetch(`${BASE}/delete`, {
+                apiRequest(`${BASE}/delete`, {
                     method: 'POST',
                     body: JSON.stringify({'file': file}),
-                }).then((response) => {
-                    if (response.status !== 204) {
-                        httpUnexpected(response);
-                        return;
-                    }
-
+                }, 204).then((response) => {
                     location.hash = '';
                     location.reload();
-                }).catch((err) => {
-                    httpError(err);
-                })
+                }).catch((err) => httpError(err))
             }
+        };
+
+        window['commit'] = () => {
+            const commitMessage = document.getElementById('commit_message').value;
+
+            if (commitMessage.length < 1) {
+                alert('Commit message empty.');
+                return;
+            }
+
+            if (confirm(`Really commit?`)) {
+                apiRequest(`${BASE}/commit`, {
+                    method: 'POST',
+                    body: JSON.stringify({'message': commitMessage}),
+                }, 204).then((response) => {
+                    location.hash = '#staging';
+                    location.reload();
+                }).catch((err) => httpError(err))
+            }
+        };
+
+        window['generate'] = () => {
+            document.getElementById('change-files').innerHTML = 'Loading...';
+
+            apiRequest(`${BASE}/generate`, {
+                method: 'POST',
+            }).then((response) => {
+                return response.text();
+            }).then((data) => {
+                document.getElementById('change-files').innerHTML = `<div class="diff-viewer"><pre>${data}</pre></div>`;
+            }).catch((err) => httpError(err))
+        };
+
+        window['pushRemote'] = () => {
+            document.getElementById('change-files').innerHTML = 'Loading...';
+
+            apiRequest(`${BASE}/push_remote`, {
+                method: 'POST',
+            }).then((response) => {
+                document.getElementById('change-files').innerHTML = 'Done!';
+            }).catch((err) => httpError(err))
         };
 
         const viewContent = (file, is_dir) => {
@@ -356,11 +446,7 @@
 <div id="preview-tab" class="is-hidden"><iframe id="preview"></iframe></div>`;
 
                 const textarea = document.getElementById('textarea');
-                fetch(`posts/${file}`).then((response) => {
-                    if (response.status !== 200) {
-                        httpUnexpected(response);
-                        return;
-                    }
+                apiRequest(`posts/${file}`).then((response) => {
                     return response.text();
                 }).then((data) => {
                     textarea.value = data;
@@ -374,51 +460,39 @@
         const toggleStage = (file, stage) => {
             document.getElementById('change-files').innerHTML = 'Loading...';
 
-            fetch(`${BASE}/stage`, {
+            apiRequest(`${BASE}/stage`, {
                 method: 'POST',
                 body: JSON.stringify({'file': file, 'stage': stage}),
-            }).then((response) => {
-                if (response.status !== 204) {
-                    httpUnexpected(response);
-                    return;
-                }
-
-                newCommit();
-            }).catch((err) => {
-                httpError(err);
-            })
+            }, 204).then((response) => {
+                viewStaging();
+            }).catch((err) => httpError(err))
         }
 
         const revert = (file) => {
             document.getElementById('change-files').innerHTML = 'Loading...';
 
-            fetch(`${BASE}/revert`, {
+            apiRequest(`${BASE}/revert`, {
                 method: 'POST',
                 body: JSON.stringify({'file': file}),
-            }).then((response) => {
-                if (response.status !== 204) {
-                    httpUnexpected(response);
-                    return;
-                }
-
-                newCommit();
-            }).catch((err) => {
-                httpError(err);
-            })
+            }, 204).then((response) => {
+                viewStaging();
+            }).catch((err) => httpError(err))
         }
 
         const colorize = (content) => {
-            let newContent = content.split("\n");
-            newContent.forEach((part, index) => {
+            let newContent = [];
+            content.split('\n').forEach((part, index) => {
                 if (part.startsWith('+')) {
-                    this[index] = `<span class="has-text-success">${part}</span>`;
+                    newContent.push(`<li><span class="has-text-success">${part}</span></li>`);
                 } else if (part.startsWith('-')) {
-                    this[index] = `<span class="has-text-danger">${part}</span>`;
+                    newContent.push(`<li><span class="has-text-danger">${part}</span></li>`);
                 } else {
-                    this[index] = part;
+                    newContent.push(`<li>${part}</li>`);
                 }
-            }, newContent);
-            return newContent.join("\n");
+            });
+            // last element is empty
+            newContent.pop();
+            return newContent.join('');
         }
 
         const getDiff = (name, diffs) => {
@@ -430,20 +504,29 @@
             return 'Not available.';
         };
 
-        const viewCommit = () => {
-            document.getElementById('editor-content').innerHTML = `<div>
-<a class="button is-success is-small" href="#stage=*">Stage all</a>
-<a class="button is-danger is-small" href="#unstage=*">Unstage all</a>
+        const viewStaging = () => {
+            document.getElementById('editor-content').innerHTML = `<div class="columns">
+<div class="column">
+    <a class="button is-success is-small" href="#stage=*">Stage all</a>
+    <a class="button is-danger is-small" href="#unstage=*">Unstage all</a>
+    <a class="button is-primary is-small" onclick="generate()">Generate all</a>
+    <a class="button is-primary is-small" onclick="pushRemote()">Push remote</a>
+</div>
+<div class="column" id="commit-area">
+    <div class="field has-addons">
+        <div class="control is-expanded">
+            <input class="input" type="text" placeholder="Commit message" id="commit_message">
+        </div>
+        <div class="control">
+            <input type="button" class="button" value="Commit" onclick="commit()">
+        </div>
+    </div>
+</div>
 </div><br>
 <div id="change-files">Loading...</div>`;
             const target = document.getElementById('change-files');
 
-            fetch(`${BASE}/changes`).then((response) => {
-                if (response.status !== 200) {
-                    httpUnexpected(response);
-                    return;
-                }
-
+            apiRequest(`${BASE}/changes`).then((response) => {
                 return response.json();
             }).then((data) => {
                 target.innerHTML = `<table class="table" id="change-table"><thead><th></th><th>File</th><th>Action</th></thead><tbody id="change-table-body"></tbody></table>`;
@@ -477,7 +560,7 @@
 <td>${change['change']}${tracked}</td>
 <td>
 <a onclick="this.parentElement.parentElement.querySelector('div.diff-viewer').classList.toggle('is-hidden')"><span class="has-text-${change['staged'] ? 'success' : 'danger'}">${name}</span></a>
-<div class="diff-viewer is-hidden"><pre>${getDiff(change['name'], data['diffs'])}</pre></div>
+<div class="diff-viewer is-hidden"><pre><ol>${getDiff(change['name'], data['diffs'])}</ol></pre></div>
 </td>
 <td>
 <a href="#${change['staged'] ? 'unstage' : 'stage'}=${change['name']}">${change['staged'] ? '[UNSTAGE]' : '[STAGE]'}</a>
@@ -485,9 +568,7 @@
 </td>
 </tr>`;
                 });
-            }).catch((err) => {
-                httpError(err);
-            });
+            }).catch((err) => httpError(err));
         };
 
         const router = () => {
@@ -511,8 +592,8 @@
                 revert(params.revert);
             }
 
-            if (params.commit === "") {
-                viewCommit();
+            if (params.staging === "") {
+                viewStaging();
             }
         };
 
@@ -520,12 +601,7 @@
 
         document.getElementById('file-upload').addEventListener('change', uploadContent);
 
-        fetch(`${BASE}/files`).then((response) => {
-            if (response.status !== 200) {
-                httpUnexpected(response);
-                return;
-            }
-
+        apiRequest(`${BASE}/files`).then((response) => {
             return response.json();
         }).then((data) => {
             const target = document.getElementById('entries');
@@ -578,7 +654,7 @@
                         .forEach((asset) => {
                             const asset_li = document.createElement('li');
                             const asset_href = document.createElement('a');
-                            asset_href.innerText = asset.replace(entry['name'].replace('.md', ''), '-');
+                            asset_href.innerText = asset.replace(entry['name'].replace('.md', ''), '');
                             asset_href.setAttribute('href', `#file=${asset}`);
                             asset_li.append(asset_href);
                             asset_list.append(asset_li);
@@ -589,9 +665,7 @@
             });
 
             router();
-        }).catch((err) => {
-            console.error(err);
-        });
+        }).catch((err) => httpError(err));
 
     }, {once: true});
 </script>

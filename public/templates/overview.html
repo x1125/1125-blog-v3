@@ -3,7 +3,7 @@
 {% for tag, posts in tag_map %}
     <div class="overview-item" style="background-image: linear-gradient(to top, transparent, #1f2424), linear-gradient(to left, transparent, #1f2424), url(../posts/overview/{{ tag }}.jpg)">
         <h5>{{ tag | replace(from="_", to="-") }}</h5>
-        <ul>
+        <ul class="overview">
             {% for post in posts %}
                 <li>
                     <a href="{{ post.filename | replace(from=".md", to=".html") }}">{{ post.filename | replace(from=".md", to="") | replace(from="_", to=" ") }}</a>
