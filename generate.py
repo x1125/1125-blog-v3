@@ -41,26 +41,23 @@ for commit in repo.iter_commits():
     commit_changelist = []
     commit_diffs = []
     for diff in commit.diff(other=(NULL_TREE if previous_commit is None else previous_commit), create_patch=True):
-
-        affected = []
-        if diff.b_path is not None:
-            affected.append(diff.b_path)
-        if diff.a_path is not None and diff.a_path not in affected:
-            affected.append(diff.a_path)
-        affected_file = ':'.join(affected)
-        print(affected_file)
-        if not affected_file.endswith('.md'):
-            continue
-        
         change = 'content'
+        affected_file = ''
         if diff.new_file:
             change = 'new'
+            affected_file = diff.b_path
         elif diff.renamed_file:
             change = 'renamed'
+            affected_file = diff.a_path + ':' + diff.b_path
         elif diff.copied_file:
             change = 'copied'
+            affected_file = diff.a_path + ':' + diff.b_path
         elif diff.deleted_file:
             change = 'deleted'
+            affected_file = diff.a_path
+
+        if not affected_file.endswith('.md'):
+            continue
 
         commit_changelist.append({
             'change': change,

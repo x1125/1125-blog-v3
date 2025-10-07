@@ -483,10 +483,17 @@ function renderUpdates(updates, target) {
     keys.sort((a, b) => (b - a)).forEach((key) => {
         let items = '';
         updates[key].forEach((item) => {
-            items += `<p><a href="#${item['path'].slice(0, -3)}">${item['path']}</a>`;
+            let path_parts = item['path'].slice(0, -3).split(':')
+            items += `<p><a href="#${path_parts[path_parts.length-1]}">${item['path'].replace(':', '&nbsp;&rarr;&nbsp;')}</a>`;
             switch (item['change']) {
                 case 'new':
                     items += '&nbsp;<span class="tag is-success"> new </span>';
+                    break;
+                case 'deleted':
+                    items += '&nbsp;<span class="tag is-danger"> deleted </span>';
+                    break;
+                case 'renamed':
+                    items += '&nbsp;<span class="tag is-primary"> renamed </span>';
                     break;
                 case 'content':
                     items += '&nbsp;<span class="tag is-primary"> updated </span>';
