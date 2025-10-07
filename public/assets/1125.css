@@ -86,12 +86,6 @@ nav li :where(a, [role="link"]) {
     white-space: nowrap;
 }
 
-@media (max-width: 576px) {
-    #subnav a {
-        display: block;
-    }
-}
-
 #scrolltop {
     color: rgba(255, 255, 255, .5);
     position: fixed;
@@ -212,4 +206,42 @@ article.no-script {
 
 #recent-posts li {
     list-style: circle;
+}
+
+@media (max-width: 576px) {
+    nav {
+        display: none;
+    }
+
+    aside > nav li:first-child:hover {
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        border-bottom-left-radius: 0 !important;
+    }
+
+    aside > nav li:last-child:hover {
+        border-top-right-radius: 0 !important;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+
+    aside > nav ul li {
+        border-bottom: 1px solid rgba(0, 0, 0, .15);
+    }
+
+    #subnav a {
+        display: block;
+    }
+}
+
+@media (max-width: 992px) {
+    .overview-item {
+        background-position: top left;
+    }
+}
+
+@media (min-width: 576px) {
+    aside > nav {
+        display: none;
+    }
 }
