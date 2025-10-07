@@ -1,7 +1,55 @@
 const markdownRenderer = window.markdownit().use(window.markdownitFootnote);
 
+const footnoteDelimiter = '^';
+
+function filterFootnoteParameter(requestParameter) {
+    return requestParameter.split(footnoteDelimiter)[0];
+}
+
+function getRequestParameterWithoutFootnote() {
+    return filterFootnoteParameter(String(window.location.hash).split('#')[1]);
+}
+
+markdownRenderer.renderer.rules.footnote_ref = function(tokens, idx, options, env, slf) {
+    const id = slf.rules.footnote_anchor_name(tokens, idx, options, env, slf);
+    const caption = slf.rules.footnote_caption(tokens, idx, options, env, slf);
+    let refid = id;
+
+    if (tokens[idx].meta.subId > 0) {
+        refid += ':' + tokens[idx].meta.subId;
+    }
+
+    return '<sup class="footnote-ref"><a href="#' + getRequestParameterWithoutFootnote() + footnoteDelimiter + id + '" id="' + getRequestParameterWithoutFootnote() + footnoteDelimiter + 'ref' + refid + '">' + caption + '</a></sup>';
+};
+
+markdownRenderer.renderer.rules.footnote_anchor = function(tokens, idx, options, env, slf) {
+    let id = slf.rules.footnote_anchor_name(tokens, idx, options, env, slf);
+
+    if (tokens[idx].meta.subId > 0) {
+        id += ':' + tokens[idx].meta.subId;
+    }
+
+    /* ↩ with escape code to prevent display as Apple Emoji on iOS */
+    return ' <a href="#' + getRequestParameterWithoutFootnote() + footnoteDelimiter + 'ref' + id + '" class="footnote-backref">\u21a9\uFE0E</a>';
+};
+
+markdownRenderer.renderer.rules.footnote_open = function(tokens, idx, options, env, slf) {
+    var id = slf.rules.footnote_anchor_name(tokens, idx, options, env, slf);
+
+    if (tokens[idx].meta.subId > 0) {
+        id += ':' + tokens[idx].meta.subId;
+    }
+
+    return '<li id="' + getRequestParameterWithoutFootnote() + footnoteDelimiter + id + '" class="footnote-item">';
+};
+
 document.addEventListener("DOMContentLoaded", function () {
-    window.addEventListener("hashchange", function () {
+    window.addEventListener("hashchange", function (e) {
+        if (filterFootnoteParameter(e.newURL) === filterFootnoteParameter(e.oldURL)) {
+            // no change occurred
+            // required for footnotes
+            return;
+        }
         DoRouting();
     }, false);
 
@@ -9,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function DoRouting() {
-    const requestParameter = String(window.location.hash).slice(1);
+    const requestParameter = getRequestParameterWithoutFootnote();
 
     if (requestParameter === '') {
         RecentlyUpdatedAction();
