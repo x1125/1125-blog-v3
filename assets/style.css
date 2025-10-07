@@ -16,6 +16,10 @@ ol {
     padding: revert;
 }
 
+ul#menuList  li a:focus {
+    outline: none;
+}
+
 .custom-box {
     background-color: rgba(0, 0, 0, .5);
     border-radius: 3px;
@@ -33,4 +37,8 @@ ol {
 
 pre.mail-graphics {
     font-size: 9px;
+}
+
+.sectionLink:hover > * {
+    display: inline-block !important;
 }
