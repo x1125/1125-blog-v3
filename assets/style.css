@@ -56,6 +56,21 @@ pre.mail-graphics {
     float: right;
 }
 
+.update-section .diff {
+    white-space: pre;
+    max-height: 200px;
+    overflow: hidden;
+    color: #8c9b9d;
+}
+
+.update-section .diff span {
+    font-family: inherit;
+}
+
+.update-section .diff:hover {
+    max-height: none;
+}
+
 /* resetting bulma for markdown view */
 
 #main-container h1,

@@ -9,7 +9,7 @@ const Request = {
     section: null,
     footnote: null,
 
-    parse: function(requestParameter) {
+    parse: function (requestParameter) {
         if (requestParameter.indexOf('#') === 0) {
             requestParameter = requestParameter.substr(1);
         }
@@ -25,13 +25,13 @@ const Request = {
         return this;
     },
 
-    buildPath: function() {
+    buildPath: function () {
         return this.path.join(pathDelimiter);
     },
-    buildSection: function() {
+    buildSection: function () {
         return this.buildPath() + sectionDelimiter + this.section;
     },
-    buildFootnote: function() {
+    buildFootnote: function () {
         return this.buildPath() + footnoteDelimiter + this.footnote;
     }
 };
@@ -161,7 +161,16 @@ function HttpGetRequest(url) {
 }
 
 function RecentlyUpdatedAction() {
-    SetMainContent('asdasd');
+    ShowContentContainer('loading');
+    HttpGetRequest('updates').then((updateData) => {
+        renderUpdates(JSON.parse(updateData), document.getElementById('main-container'));
+        ShowContentContainer('main');
+    }).catch((error) => {
+        console.error(error);
+        SetMessageBox('danger', 'Unknown error', 'Please try reloading the page');
+        ShowContentContainer('message');
+    });
+
     ShowContentContainer('main');
 }
 
@@ -174,7 +183,7 @@ function RenderPostAction(mdPath) {
 
         if (Request.section !== null) {
             ScrollToAnchor(Request.buildSection());
-        } else if(Request.footnote !== null) {
+        } else if (Request.footnote !== null) {
             ScrollToAnchor(Request.buildFootnote());
         }
 
@@ -229,7 +238,7 @@ function SetMessageBox(type, title, body) {
 function SetActiveMenuItem(routes) {
     let routeCombination = [];
     let routeSet = [];
-    for (let i=0; i<routes.length; i++) {
+    for (let i = 0; i < routes.length; i++) {
         routeCombination.push(routes[i]);
         routeSet.push(routeCombination.join(pathDelimiter));
     }
@@ -247,7 +256,7 @@ function ScrollToAnchor(id) {
 }
 
 function initScrollToTop() {
-    window.addEventListener('scroll', function(e){
+    window.addEventListener('scroll', function (e) {
         document.getElementById('scrolltop').classList.toggle('scrolltop-hidden',
             e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
     });
@@ -259,4 +268,55 @@ function scrollToTop() {
 
 function contrastMode() {
     document.body.classList.toggle('light-mode');
+}
+
+function renderUpdates(updates, target) {
+    target.innerHTML = '';
+    let keys = [];
+    for (let key in updates) {
+        if (updates.hasOwnProperty(key)) {
+            keys.push(key);
+        }
+    }
+
+    keys.sort((a, b) => (b - a)).forEach((key) => {
+        let items = '';
+        updates[key].forEach((item) => {
+            items += '<p>';
+            items += `<a href="#${item['path'].slice(0, -3)}">${item['path']}</a>`;
+            switch (item['change']) {
+                case 'new':
+                    items += '&nbsp;<span class="tag is-success"> new </span>';
+                    break;
+                case 'content':
+                    items += '&nbsp;<span class="tag is-primary"> updated </span>';
+                    break;
+            }
+            items += '<br>';
+            items += `<div class="column custom-box diff" data-key="${key}" data-path="${item['path']}">loading...</div>`;
+            items += '</p>';
+        });
+
+        target.innerHTML += `<section class="section update-section">
+<h1 class="title">${new Date(key * 1000).toLocaleString()}</h1>
+<hr>
+<div>
+${items}
+</div>
+</section>`;
+
+        HttpGetRequest('update_diffs/' + key).then((diffData) => {
+            JSON.parse(diffData).forEach((diff) => {
+                const target = document.querySelector(`div[data-key="${key}"][data-path="${diff.path}"]`);
+                target.innerHTML = diff.diff
+                    .replace(/^\+(.*?)$/gm, '<span class="has-text-success">+$1</span>')
+                    .replace(/^-(.*?)$/gm, '<span class="has-text-danger">-$1</span>');
+            });
+        }).catch((error) => {
+            console.error(error);
+            document.querySelectorAll(`div[data-key="${key}"]`).forEach((elem) => {
+                elem.innerHTML = 'error loading (see logs)';
+            });
+        });
+    });
 }
