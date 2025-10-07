@@ -102,7 +102,7 @@ function DoRouting() {
         firstElement = Request.path[0];
     }
 
-    SetActiveMenuItem(firstElement);
+    SetActiveMenuItem(Request.path);
 
     if (firstElement === '') {
         window.location.hash = '#latest';
@@ -114,7 +114,7 @@ function DoRouting() {
         return;
     }
 
-    RenderPostAction('posts/' + firstElement + '.md');
+    RenderPostAction('posts/' + Request.buildPath() + '.md');
 }
 
 function HttpGetRequest(url) {
@@ -147,7 +147,6 @@ function RenderPostAction(mdPath) {
         SetMainContent(markdownRenderer.render(markdownData));
         ShowContentContainer('main');
 
-        // TODO: scroll to section / footnote if available
         if (Request.section !== null) {
             ScrollToAnchor(Request.buildSection());
         } else if(Request.footnote !== null) {
@@ -185,13 +184,15 @@ function SetMessageBox(type, title, body) {
     document.querySelector('#message-container .message-body').innerHTML = body;
 }
 
-function SetActiveMenuItem(route) {
+function SetActiveMenuItem(routes) {
+    let routeCombination = [];
+    let routeSet = [];
+    for (let i=0; i<routes.length; i++) {
+        routeCombination.push(routes[i]);
+        routeSet.push(routeCombination.join(pathDelimiter));
+    }
     document.querySelectorAll('#menuList li a').forEach(function(a){
-        if (a.hash === '#' + route) {
-            a.classList.add('is-active');
-        } else {
-            a.classList.remove('is-active');
-        }
+        a.classList.toggle('is-active', routeSet.indexOf(a.hash.substr(1)) !== -1);
     });
 }
 

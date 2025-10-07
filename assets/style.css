@@ -39,6 +39,11 @@ pre.mail-graphics {
     font-size: 9px;
 }
 
+.sectionLink > a {
+    margin-left: 5px;
+    vertical-align: super;
+}
+
 .sectionLink:hover > * {
     display: inline-block !important;
 }
