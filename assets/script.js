@@ -152,7 +152,7 @@ function HttpGetRequest(url) {
             console.error(xhr);
             reject('unknown error');
         };
-        xhr.open('GET', url, true);
+        xhr.open('GET', url + '?' + new Date().getTime(), true);
         xhr.send();
     });
 }
