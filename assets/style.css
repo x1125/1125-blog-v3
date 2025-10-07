@@ -18,8 +18,38 @@ i[data-icon] {
     width: 15px;
 }
 
+ul#menuList {
+    overflow: hidden;
+    max-height: 1000px;
+    -webkit-transition: max-height 0.3s;
+    -moz-transition: max-height 0.3s;
+    transition: max-height 0.3s;
+}
+
+ul#menuList.collapsed {
+    max-height: 0;
+}
+
 ul#menuList li a:focus {
     outline: none;
+}
+
+aside.menu p.menu-label span.collapsable {
+    display: inline-block;
+    font-size: 20px;
+}
+
+aside.menu p.menu-label span.collapsable i {
+    vertical-align: middle;
+    fill: #fff;
+    transition: transform 0.3s;
+    transform: rotate(-180deg);
+    height: 12px;
+    width: 12px;
+}
+
+aside.menu p.menu-label span.collapsable.collapsed > i {
+    transform: rotate(0deg);
 }
 
 .custom-box {
@@ -31,6 +61,15 @@ ul#menuList li a:focus {
     border-right: 1px solid rgba(255, 255, 255, .1);
     box-shadow: 1px 1px 3px rgba(0, 0, 0, .3);
     text-shadow: 1px 1px 1px rgba(0, 0, 0, .1);
+}
+
+#menu-box {
+    width: 275px;
+}
+
+#content-box {
+    min-width: 300px;
+    max-width: 1400px;
 }
 
 #menu-bottom a i[data-icon] {
@@ -61,6 +100,19 @@ pre.mail-graphics {
 #main-container .headline-index-container {
     float: right;
     margin-left: 10px;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 1300px) {
+    #main-container .headline-index-container {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    #menu-box {
+        width: 100%;
+    }
 }
 
 #main-container section {
@@ -85,12 +137,16 @@ pre.mail-graphics {
     width: 100%;
 }
 
+.update-section .diff.preview .diff-content {
+    filter: blur(1px);
+}
+
 .update-section .diff.preview {
     max-height: 200px;
 }
 
 .update-section .diff-overlay {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.5);
     height: 198px;
     width: 100%;
     position: relative;
@@ -100,7 +156,7 @@ pre.mail-graphics {
     text-shadow: 0 0 15px rgb(255, 255, 255);
     font-size: 1.5em;
     position: absolute;
-    left: 45%;
+    left: calc(50% - 60px);
     top: 40%;
 }
 

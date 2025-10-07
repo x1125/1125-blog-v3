@@ -3,6 +3,7 @@
 const pathDelimiter = '/';
 const sectionDelimiter = ':';
 const footnoteDelimiter = '^';
+const menuCollapseWidth = 768;
 
 const Tags = {
     'in-progress': 'warning',
@@ -151,6 +152,9 @@ const RenderFrame = {
 };
 
 const Menu = {
+    constructor() {
+        Menu.collapsable = false
+    },
     render: function(postIndex) {
         const addSubNode = (prefix, pathArr) => {
             // starting with the first element
@@ -187,6 +191,22 @@ const Menu = {
         postIndex.forEach((post) => {
             addSubNode([], post.split('/'));
         });
+    },
+    setCollapsable: function(state) {
+        Menu.collapsable = state;
+        document.querySelector('aside.menu p.menu-label span.collapsable').classList.toggle('is-hidden', !state);
+        Menu.toggleCollapse(state);
+    },
+    checkCollapsable: function() {
+        if (document.body.clientWidth < menuCollapseWidth) {
+            Menu.setCollapsable(true);
+        }
+    },
+    toggleCollapse: function(state) {
+        if (Menu.collapsable || state === false) {
+            document.getElementById('menuList').classList.toggle('collapsed', state);
+            document.querySelector('aside.menu span.collapsable').classList.toggle('collapsed', state);
+        }
     },
     _newMenuNode: function(link, title) {
         return `<li data-id="${link}"><a href="#${link}">&raquo;&nbsp;${title.split('_').join(' ')}</a></li>`;
@@ -240,6 +260,18 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
     });
 
+    window.addEventListener('resize', function(){
+        if (document.body.clientWidth < menuCollapseWidth && !Menu.collapsable) {
+            Menu.setCollapsable(true);
+        } else if(document.body.clientWidth >= menuCollapseWidth && Menu.collapsable) {
+            Menu.setCollapsable(false);
+        }
+    });
+
+    document.querySelector('aside.menu p.menu-label').addEventListener('click', ()=>{
+        Menu.toggleCollapse();
+    });
+
     HttpGetRequest('post_index.json')
         .then((postIndexData) => {
             const postIndex = JSON.parse(postIndexData);
@@ -250,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     InitIcons();
+    Menu.checkCollapsable();
 });
 
 function HttpGetRequest(url) {

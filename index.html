@@ -22,37 +22,37 @@
 <body>
 
 <div class="column">
-    <br>
-    <div class="columns">
-        <div class="column is-2">
-            <a href="#">
-                <svg id="logo" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 80">
-                    <defs>
-                        <linearGradient id="gradient1" y1="0" y2="1">
-                            <stop stop-color="#eee" offset="0"/>
-                            <stop stop-color="#ccc" offset="1"/>
-                        </linearGradient>
-                        <linearGradient id="gradient2" y1="0" y2="1">
-                            <stop stop-color="#555" offset="0"/>
-                            <stop stop-color="#333" offset="1"/>
-                        </linearGradient>
-                    </defs>
-                    <g>
-                        <text id="text" x="22%" y="75" font-family="Roboto" font-size="100" font-weight="900"
-                              stroke-width="3" stroke="url(#gradient1)" fill="url(#gradient2)">eleven25
-                        </text>
-                    </g>
-                </svg>
-            </a>
-        </div>
+    <div class="column" style="max-width:275px">
+        <a href="#">
+            <svg id="logo" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 120">
+                <defs>
+                    <linearGradient id="gradient1" y1="0" y2="1">
+                        <stop stop-color="#eee" offset="0"/>
+                        <stop stop-color="#ccc" offset="1"/>
+                    </linearGradient>
+                    <linearGradient id="gradient2" y1="0" y2="1">
+                        <stop stop-color="#555" offset="0"/>
+                        <stop stop-color="#333" offset="1"/>
+                    </linearGradient>
+                </defs>
+                <g>
+                    <text id="text" x="15%" y="95" font-family="Roboto" font-size="120" font-weight="900"
+                          stroke-width="3" stroke="url(#gradient1)" fill="url(#gradient2)">eleven25
+                    </text>
+                </g>
+            </svg>
+        </a>
     </div>
 
     <div class="columns">
-        <div class="column is-2" style="max-width: 300px;">
+        <div class="column is-2" id="menu-box">
             <div class="custom-box">
                 <div class="column">
                     <aside class="menu">
                         <p class="menu-label">
+                        <span class="collapsable is-hidden">
+                            <i data-icon="solid/angle-down"></i>
+                        </span>
                             Categories
                         </p>
                         <ul class="menu-list" id="menuList">
@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <div class="column is-10">
+        <div class="column" id="content-box">
             <noscript>
                 <article class="message content-container is-warning">
                     <div class="message-header">
