@@ -8,14 +8,17 @@ for line in fileinput.input():
             if match.startswith('#'):
                 parts = match[1:].split(':')
                 markdownFilePath = 'posts/{}.md'.format(parts[0])
-                with open(markdownFilePath, 'r') as markdownFile:
-                    markdownContent = re.sub(r'^```(.*?)```$', '', markdownFile.read(), 0, re.MULTILINE | re.DOTALL)
-                    headlines = []
-                    for headline in re.findall(r'^[#]{1,5} (.+?)$', markdownContent, re.MULTILINE):
-                        headlines.append(headline.replace(' ', '_'))
+                try:
+                    with open(markdownFilePath, 'r') as markdownFile:
+                        markdownContent = re.sub(r'^```(.*?)```$', '', markdownFile.read(), 0, re.MULTILINE | re.DOTALL)
+                        headlines = []
+                        for headline in re.findall(r'^[#]{1,5} (.+?)$', markdownContent, re.MULTILINE):
+                            headlines.append(headline.replace(' ', '_'))
 
-                    if parts[1] not in headlines:
-                        print('invalid reference: {} in {}'.format(match, line.strip()))
+                        if parts[1] not in headlines:
+                            print('invalid reference: {} in {}'.format(match, line.strip()))
+                except FileNotFoundError:
+                    print('invalid reference: {} in {}'.format(match, line.strip()))
             else:
                 if match.startswith('/'):
                     match = '.{}'.format(match)

@@ -22,6 +22,9 @@ exif-scrub:
 	find posts/ -iname '*.jpg' | xargs exiftool -all=
 	find posts/ -iname '*.jpg_original' | xargs -r rm
 
+generate-bulma-from-scss:
+	npm run build
+
 generate-preview-images:
 	. venv/bin/activate; grep -r '{.previewimage}' posts/ | python3 generate-preview-images.py
 

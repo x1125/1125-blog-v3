@@ -27,7 +27,7 @@ module.exports = {
     },
     plugins: [
         new MiniCssExtractPlugin({
-            filename: 'assets/bulmaswatch.dakly.custom.min.css'
+            filename: 'assets/bulmaswatch.custom.min.css'
         }),
     ]
 };

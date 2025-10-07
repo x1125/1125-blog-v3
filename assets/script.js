@@ -6,9 +6,9 @@ const footnoteDelimiter = '^';
 const menuCollapseWidth = 768;
 
 const Tags = {
-    'in-progress': 'warning',
-    'done': 'success',
-    'abandoned': 'black',
+    'status:in-progress': 'warning',
+    'status:done': 'success',
+    'status:abandoned': 'danger',
 };
 
 const AnchorScroll = {
@@ -528,10 +528,10 @@ function renderUpdates(updates, target) {
                     items += '&nbsp;<span class="tag is-danger"> deleted </span>';
                     break;
                 case 'renamed':
-                    items += '&nbsp;<span class="tag is-primary"> renamed </span>';
+                    items += '&nbsp;<span class="tag"> renamed </span>';
                     break;
                 case 'content':
-                    items += '&nbsp;<span class="tag is-primary"> updated </span>';
+                    items += '&nbsp;<span class="tag"> updated </span>';
                     break;
             }
             items += `<br><div class="column custom-box diff preview" data-key="${key}" data-path="${item['path']}"><div class="diff-content"></div><div class="diff-hide"><span>Hide</span></div><div class="diff-overlay"><span class="show-diff">Show diff</span></div></div></p>`;
