@@ -5,6 +5,7 @@ use clap::Command;
 use std::path::Path;
 use std::process;
 use tera::Tera;
+use tide::http::headers::HeaderValue;
 
 use tide::security::{CorsMiddleware, Origin};
 use tide_rustls::TlsListener;
@@ -73,24 +74,29 @@ async fn webserver(config: Config) {
         process::exit(1);
     }
 
-    let cors = CorsMiddleware::new().allow_origin(Origin::from("*"));
+    //let cors = CorsMiddleware::new().allow_origin(Origin::from("*"));
+    let cors = CorsMiddleware::new()
+        .allow_methods("GET, POST, OPTIONS".parse::<HeaderValue>().unwrap())
+        .allow_origin(Origin::from("*"))
+        .allow_credentials(false);
 
     let mut app = tide::with_state(config);
     app.with(cors);
-    app.with(AuthMiddleware {}).at("/files").get(ctrl_get_files);
-    app.with(AuthMiddleware {}).at("/changes").get(ctrl_get_changes);
-    app.with(AuthMiddleware {}).at("/preview").post(ctrl_get_preview);
-    app.with(AuthMiddleware {}).at("/file/new").post(ctrl_new_file);
-    app.with(AuthMiddleware {}).at("/folder/new").post(ctrl_new_folder);
-    app.with(AuthMiddleware {}).at("/stage").post(ctrl_stage);
-    app.with(AuthMiddleware {}).at("/revert").post(ctrl_revert);
-    app.with(AuthMiddleware {}).at("/upload").post(ctrl_upload);
-    app.with(AuthMiddleware {}).at("/save").post(ctrl_save);
-    app.with(AuthMiddleware {}).at("/rename").post(ctrl_rename);
-    app.with(AuthMiddleware {}).at("/delete").post(ctrl_delete);
-    app.with(AuthMiddleware {}).at("/commit").post(ctrl_commit);
-    app.with(AuthMiddleware {}).at("/generate").post(ctrl_generate);
-    app.with(AuthMiddleware {}).at("/push_remote").post(ctrl_push_remote);
+    app.with(AuthMiddleware {});
+    app.at("/files").get(ctrl_get_files);
+    app.at("/changes").get(ctrl_get_changes);
+    app.at("/preview").post(ctrl_get_preview);
+    app.at("/file/new").post(ctrl_new_file);
+    app.at("/folder/new").post(ctrl_new_folder);
+    app.at("/stage").post(ctrl_stage);
+    app.at("/revert").post(ctrl_revert);
+    app.at("/upload").post(ctrl_upload);
+    app.at("/save").post(ctrl_save);
+    app.at("/rename").post(ctrl_rename);
+    app.at("/delete").post(ctrl_delete);
+    app.at("/commit").post(ctrl_commit);
+    app.at("/generate").post(ctrl_generate);
+    app.at("/push_remote").post(ctrl_push_remote);
 
     let listen = env::var("LISTEN").unwrap_or(String::from("127.0.0.1:8080"));
     let tide_cert_path = env::var("TIDE_CERT_PATH").unwrap_or(String::from(""));

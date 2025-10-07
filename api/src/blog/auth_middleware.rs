@@ -42,6 +42,7 @@ impl<State> Middleware<State> for AuthMiddleware
 
 fn unauthorized(message: &str) -> Response {
     return Response::builder(StatusCode::Unauthorized)
+        //.header("Access-Control-Allow-Origin", "*")
         .body(message)
         .content_type(mime::PLAIN)
         .build();
