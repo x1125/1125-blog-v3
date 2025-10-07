@@ -256,3 +256,7 @@ function initScrollToTop() {
 function scrollToTop() {
     document.documentElement.scrollTop = 0;
 }
+
+function contrastMode() {
+    document.body.classList.toggle('light-mode');
+}
