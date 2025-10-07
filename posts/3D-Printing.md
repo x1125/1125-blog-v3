@@ -5,8 +5,10 @@ asdasd
 # Own designs
 
 ## foo
+[in-progress]
 
 ## bar
+[done]
 
 - First item
 - Second item

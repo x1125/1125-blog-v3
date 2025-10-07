@@ -1,4 +1,4 @@
-const markdownRenderer = window.markdownit().use(window.markdownitFootnote);
+'use strict';
 
 const pathDelimiter = '/';
 const sectionDelimiter = ':';
@@ -13,7 +13,7 @@ const Request = {
         if (requestParameter.indexOf('#') === 0) {
             requestParameter = requestParameter.substr(1);
         }
-        
+
         let tmp = requestParameter.split(footnoteDelimiter);
         this.footnote = tmp[1] || null;
 
@@ -21,10 +21,10 @@ const Request = {
         this.section = tmp[1] || null;
 
         this.path = String(tmp[0]).split(pathDelimiter);
-        
+
         return this;
     },
-    
+
     buildPath: function() {
         return this.path.join(pathDelimiter);
     },
@@ -36,49 +36,15 @@ const Request = {
     }
 };
 
-markdownRenderer.renderer.rules.footnote_ref = function (tokens, idx, options, env, slf) {
-    const id = slf.rules.footnote_anchor_name(tokens, idx, options, env, slf);
-    const caption = slf.rules.footnote_caption(tokens, idx, options, env, slf);
-    let refid = id;
-
-    if (tokens[idx].meta.subId > 0) {
-        refid += ':' + tokens[idx].meta.subId;
-    }
-
-    return '<sup class="footnote-ref"><a href="#' + Request.buildPath() + footnoteDelimiter + id +
-        '" id="' + Request.buildPath() + footnoteDelimiter + 'ref' + refid + '">' + caption + '</a></sup>';
+const Tags = {
+    'in-progress': 'warning',
+    'done': 'success'
 };
 
-markdownRenderer.renderer.rules.footnote_anchor = function (tokens, idx, options, env, slf) {
-    let id = slf.rules.footnote_anchor_name(tokens, idx, options, env, slf);
-
-    if (tokens[idx].meta.subId > 0) {
-        id += ':' + tokens[idx].meta.subId;
-    }
-
-    /* ↩ with escape code to prevent display as Apple Emoji on iOS */
-    return ' <a href="#' + Request.buildPath() + footnoteDelimiter + 'ref' + id + '" class="footnote-backref">\u21a9\uFE0E</a>';
-};
-
-markdownRenderer.renderer.rules.footnote_open = function (tokens, idx, options, env, slf) {
-    let id = slf.rules.footnote_anchor_name(tokens, idx, options, env, slf);
-
-    if (tokens[idx].meta.subId > 0) {
-        id += ':' + tokens[idx].meta.subId;
-    }
-
-    return '<li id="' + Request.buildPath() + footnoteDelimiter + id + '" class="footnote-item">';
-};
-
-markdownRenderer.renderer.rules.heading_open = function(tokens, idx, options, env, slf) {
-    const title = tokens[idx+1].content;
-    return '<div class="sectionLink"><' + tokens[idx].tag + ' id="' + Request.buildPath() + sectionDelimiter + title + '">';
-};
-
-markdownRenderer.renderer.rules.heading_close = function(tokens, idx, options, env, slf) {
-    const title = tokens[idx-1].content;
-    return '</' + tokens[idx].tag + '><a href="#' + Request.buildPath() + sectionDelimiter + title + '" class="is-hidden"><i class="fas fa-link"></i></a></div>';
-};
+const markdownRenderer = window.markdownit()
+    .use(window.markdownitFootnote)
+    .use(window.markdownitFootnoteBulma(Request))
+    .use(window.markdownitTags(Tags));
 
 document.addEventListener("DOMContentLoaded", function () {
     window.addEventListener("hashchange", function (e) {
