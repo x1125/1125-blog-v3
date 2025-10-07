@@ -204,6 +204,14 @@ pre.mail-graphics {
     color: #000 !important;
 }
 
+.light-mode #menu-bottom a i[data-icon] {
+    fill: #000;
+}
+
+.light-mode #menuList a.is-active {
+    background-color: #6abfb0;
+}
+
 .light-mode code,
 .light-mode hr,
 .light-mode pre {
@@ -211,7 +219,7 @@ pre.mail-graphics {
 }
 
 .light-mode .menu-list a:hover {
-    background-color: #b4c3c3;
+    background-color: #90cbc1;
 }
 
 .light-mode .custom-box {
