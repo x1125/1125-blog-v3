@@ -1,6 +1,6 @@
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use tide::{Request, Response, StatusCode};
-use crate::blog::config::{Config, REMOTE_BRANCH, REMOTE_NAME};
+use crate::blog::config::{Config, REMOTE_REF, REMOTE_NAME};
 use crate::blog::error::http_error;
 
 pub async fn ctrl_pull_remote(req: Request<Config>) -> tide::Result {
@@ -30,7 +30,7 @@ pub async fn ctrl_pull_remote(req: Request<Config>) -> tide::Result {
         )
     });
     fetch_option.remote_callbacks(callbacks);
-    if let Err(e) = remote.fetch(&[REMOTE_BRANCH], Some(&mut fetch_option), None) {
+    if let Err(e) = remote.fetch(&[REMOTE_REF], Some(&mut fetch_option), None) {
         return Ok(http_error(StatusCode::InternalServerError, format!("unable to pull from remote: {}", e.message())));
     }
 

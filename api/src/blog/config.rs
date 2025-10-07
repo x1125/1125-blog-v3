@@ -4,7 +4,8 @@ use std::path::{Path, PathBuf};
 pub const HIGHLIGHT_THEME: &str = "base16-ocean.dark";
 pub const DEFAULT_BRANCH: &str = "main";
 pub const REMOTE_NAME: &str = "ssh";
-pub const REMOTE_BRANCH: &str = "refs/remotes/ssh/main";
+pub const REMOTE_REF: &str = "refs/remotes/ssh/main";
+pub const LOCAL_REF: &str = "refs/heads/main";
 
 #[derive(Debug, Clone)]
 pub struct ConfigError {
