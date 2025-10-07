@@ -64,7 +64,7 @@ pub struct Generator<'a> {
     input_path: PathBuf,
     output_path: PathBuf,
     filter: String,
-    markdown_options: ComrakOptions,
+    markdown_options: ComrakOptions<'a>,
     markdown_plugins: ComrakPlugins<'a>,
     headline_regex: Option<Regex>,
     image_regex: Option<Regex>,

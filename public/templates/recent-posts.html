@@ -1,5 +1,5 @@
-<ol class="recent-posts">
+<ul id="recent-posts">
 {% for post in posts %}
-    <li><a href="{{ post.filename | replace(from=".md", to=".html") }}">{{ post.filename | replace(from=".md", to="") | replace(from="_", to=" ") }}</a> ({{ post.created }})</li>
+    <li>{{ post.created }} - <a href="{{ post.filename | replace(from=".md", to=".html") }}">{{ post.filename | replace(from=".md", to="") | replace(from="_", to=" ") }}</a></li>
 {% endfor %}
-</ol>
+</ul>

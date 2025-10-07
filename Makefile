@@ -1,13 +1,9 @@
-.PHONY: all update-dependencies compress-css generate-bulma-from-scss
+.PHONY: all update-dependencies compress
 
-all: update-dependencies compress-css generate-bulma-from-scss
+all: update-dependencies compress
 
-compress-css: generate-bulma-from-scss
-	css-minifier -l 2 -i public/assets/bulmaswatch.custom.css -o public/assets/bulmaswatch.custom.min.css
-	css-minifier -l 2 -i public/assets/style.css -o public/assets/style.min.css
-
-generate-bulma-from-scss:
-	sass-rs < public/assets/scss/1125-bulma.scss > public/assets/bulmaswatch.custom.css
+compress:
+	minifier public/assets/1125.css public/assets/modal.js
 
 update-dependencies:
-	cargo install sass-rs css-minifier
+	cargo install minifier

@@ -3,139 +3,71 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+    <meta name="color-scheme" content="light dark"/>
+
     <title>eleven25{% if title %} | {{ title }}{% endif %}</title>
     {% if title %}
-    <meta name="title" content="eleven25 | {{ title }}" />
-    {% endif %}{% if description %}<meta name="description" content="{{ description }}" />
-    {% endif %}
-    
+        <meta name="title" content="eleven25 | {{ title }}"/>
+    {% endif %}{% if description %}
+    <meta name="description" content="{{ description }}"/>
+{% endif %}
+
     <link rel="icon" href="../assets/favicon.png">
 
-    <link rel="stylesheet" href="../assets/fonts/pressstart2p.css">
-    <link rel="stylesheet" href="../assets/fonts/ubuntu.css">
-    <link rel="stylesheet" href="../assets/bulmaswatch.custom.min.css">
-    <link rel="stylesheet" href="../assets/style.min.css">
+    <link rel="stylesheet" href="../assets/pico.classless.slate.min.css">
+    <link rel="stylesheet" href="../assets/1125.min.css">
 </head>
 <body>
 
-<div class="column is-three-fifths is-offset-one-fifth hero has-box-shadow" id="start-logo-hero">
-    <div class="columns">
-        <div class="column is-two-fifths">
-            <a href="overview.html">
-                <svg id="logo" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 100">
-                    <defs>
-                        <linearGradient id="gradient1" y1="0" y2="10">
-                            <stop stop-color="#a6bed9" offset="0"/>
-                            <stop stop-color="#2e4b6b" offset="1"/>
-                        </linearGradient>
-                        <linearGradient id="gradient2" y1="0" y2="1">
-                            <stop stop-color="#4d7eb3" offset="0"/>
-                            <stop stop-color="#375a7f" offset="1"/>
-                        </linearGradient>
-                        <filter id="dropshadow" height="130%">
-                            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-                            <feOffset dx="3" dy="3" result="offsetblur"/>
-                            <feComponentTransfer>
-                                <feFuncA type="linear" slope="0.3"/>
-                            </feComponentTransfer>
-                            <feMerge>
-                                <feMergeNode/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-                    <g>
-                        <text id="text" x="0%" y="90%" font-family="Press-Start-2P" font-size="60" font-weight="900"
-                              letter-spacing="10"
-                              stroke-width="3" stroke="url(#gradient1)" fill="url(#gradient2)"
-                              style="filter:url(#dropshadow)">>_eleven25
-                        </text>
-                    </g>
-                </svg>
-            </a>
+<header>
+    <a href="overview.html">
+        <img id="logo" src="../assets/Eleven25_Logo.png" alt="">
+    </a>
+    <br>
+    I'm someone from the internet. I build/mod/fix things. And I blog about it.
+
+    <nav>
+        <ul>
+            <li><a href="overview.html">Overview</a></li>
+            <li><a href="recent-posts.html">Recent posts</a></li>
+        </ul>
+
+        <ul>
+            <li><a href="https://github.com/x1125" target="_blank">Github</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="about.html">About</a></li>
+        </ul>
+    </nav>
+
+    {% if headlines %}
+        <div id="subnav">
+            {% for headline in headlines %}
+                <a href="#{{ headline.id }}">&#9205;&nbsp;{{ headline.title }}</a>
+            {% endfor %}
         </div>
-        <div class="column is-two-fifth is-offset-one-fifths has-text-right">
-            I'm someone from the internet.<br>
-            I build/mod/fix things.<br>
-            And I blog about it.
-        </div>
-    </div>
+    {% endif %}
+</header>
 
-</div>
-
-<nav class="navbar is-primary has-box-shadow" id="nav" role="navigation" aria-label="main navigation">
-    <div class="column is-three-fifths is-offset-one-fifth">
-        <a role="button" class="navbar-burger" data-target="navMenu" aria-label="menu" aria-expanded="false">
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-        </a>
-
-        <div class="navbar-menu" id="navMenu">
-            <div class="navbar-start">
-                <a class="navbar-item" href="overview.html">
-                    Overview
-                </a>
-                <a class="navbar-item" href="recent-posts.html">
-                    Recent posts
-                </a>
-            </div>
-
-            <div class="navbar-end">
-                <a class="navbar-item" href="https://github.com/x1125" target="_blank">
-                    Github
-                </a>
-                <a class="navbar-item" href="contact.html">
-                    Contact
-                </a>
-                <a class="navbar-item" href="about.html">
-                    About
-                </a>
-            </div>
-        </div>
-    </div>
-</nav>
-
-{% if headlines %}
-    <div class="column is-2 is-hidden-mobile" id="headline-index-container">
-        <p class="menu-label">
-            Sections
-        </p>
-        <aside class="menu">
-            <ul class="menu-list">
-                {% for headline in headlines %}
-                    <li><a href="#{{ headline.id }}">{{ headline.title }}</a></li>
-                {% endfor %}
-            </ul>
-        </aside>
-    </div>
-{% endif %}
-
-<div class="column is-three-fifths is-offset-one-fifth has-box-shadow has-text-centered" id="start-content-hero">
+<main>
     <noscript>
-        <article class="message content-container is-warning">
-            <div class="message-header">
-                <p>Javascript disabled</p>
-            </div>
-            <div class="message-body">Some parts won't be accessible.</div>
+        <article class="no-script">
+            <header>Javascript disabled</header>
+            Some parts won't be accessible.
         </article>
-        <hr>
     </noscript>
 
-    <div id="content" class="has-text-left content">
-        {% if status %}
-            <div class="tags has-addons">
-                <span class="tag is-dark">Status</span>{% if status == "done" %}<span class="tag is-success">{{ status }}</span>{% elif status == "abandoned" %}<span class="tag is-danger">{{ status }}</span>{% else %}<span class="tag is-primary">{{ status }}</span>{% endif %}
-            </div>
-        {% endif %}
-        {{ content | safe }}
-    </div>
-</div>
+    <article>
+    {% if status %}
+        <div class="tags has-addons">
+            <span class="tag is-dark">Status</span>{% if status == "done" %}<span class="tag is-success">{{ status }}</span>{% elif status == "abandoned" %}<span class="tag is-danger">{{ status }}</span>{% else %}<span class="tag is-primary">{{ status }}</span>{% endif %}
+        </div>
+    {% endif %}
+    {{ content | safe }}
+    </article>
+</main>
 
 <div id="scrolltop" class="scrolltop-hidden" onclick="document.documentElement.scrollTop=0;document.body.scrollTop=0">
-    <i data-icon="solid/square-caret-up"></i>
-    UP
+    &#128285;
 </div>
 
 <script>
@@ -144,62 +76,41 @@
             document.getElementById('scrolltop').classList.toggle('scrolltop-hidden',
                 e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
         });
-
-        // Get all "navbar-burger" elements
-        const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-
-        // Add a click event on each of them
-        $navbarBurgers.forEach(el => {
-            el.addEventListener('click', () => {
-
-                // Get the target from the "data-target" attribute
-                const target = el.dataset.target;
-                const $target = document.getElementById(target);
-
-                // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
-                el.classList.toggle('is-active');
-                $target.classList.toggle('is-active');
-
-            });
-        });
     });
 </script>
 
 {% if features %}
     {% if 'preview' in features or '3d' in features %}
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                document.addEventListener('keydown', function (e) {
-                    const activeModal = document.querySelector('.modal.is-active');
-                    if (e.key === 'Escape' && activeModal != null) {
-                        activeModal.classList.remove('is-active');
-                    }
-                });
-            });
-        </script>
+        <script src="../assets/modal.min.js"></script>
     {% endif %}
 {% endif %}
 
 {% if features and 'preview' in features %}
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const imageModal = document.getElementById('ImageModal');
             document.querySelectorAll('.preview-image').forEach((elem) => {
                 elem.addEventListener('click', (e) => {
                     e.preventDefault();
-                    imageModal.classList.add('is-active');
-                    imageModal.querySelector('.modal-content').innerHTML = '<img alt="" src="' + e.target.parentNode.getAttribute('href') + '">';
+                    openModal(document.getElementById('image-modal'));
+                    document.getElementById('image-container').innerHTML = '<img alt="" src="' + e.target.parentNode.getAttribute('href') + '">';
                 });
             });
         });
     </script>
 
-    <div class="modal" id="ImageModal">
-        <div class="modal-background"></div>
-        <div class="modal-content"></div>
-        <button class="modal-close is-large" aria-label="close"
-                onclick="this.parentNode.classList.remove('is-active')"></button>
-    </div>
+    <dialog id="image-modal">
+        <article>
+            <header>
+                <button
+                        aria-label="Close"
+                        rel="prev"
+                        data-target="image-modal"
+                        onclick="toggleModal(event)"
+                ></button>
+            </header>
+            <div id="image-container"></div>
+        </article>
+    </dialog>
 {% endif %}
 
 {% if features and '3d' in features %}
@@ -279,27 +190,37 @@
 
         const view3D = function (e) {
             e.preventDefault();
-            const preview3D = document.getElementById('STLViewerModal');
-            preview3D.classList.add('is-active');
-            RenderFrame.init(e.target.getAttribute('href'), preview3D.querySelector('.modal-content'));
+            const preview3D = document.getElementById('stl-viewer-modal');
+            openModal(preview3D);
+            RenderFrame.init(e.target.parentNode.getAttribute('href'), preview3D.querySelector('#stl-viewer-container'));
         };
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('a').forEach((elem) => {
                 if (elem.href.endsWith('.stl')) {
                     elem.addEventListener('click', view3D);
-                    elem.classList.add('button');
+                    const button = document.createElement('button');
+                    button.textContent = elem.text;
+                    elem.text = '';
+                    elem.append(button);
                 }
             });
         });
     </script>
 
-    <div class="modal" id="STLViewerModal">
-        <div class="modal-background"></div>
-        <div class="modal-content"></div>
-        <button class="modal-close is-large" aria-label="close"
-                onclick="this.parentNode.classList.remove('is-active')"></button>
-    </div>
+    <dialog id="stl-viewer-modal">
+        <article>
+            <header>
+                <button
+                        aria-label="Close"
+                        rel="prev"
+                        data-target="stl-viewer-modal"
+                        onclick="toggleModal(event)"
+                ></button>
+            </header>
+            <div id="stl-viewer-container"></div>
+        </article>
+    </dialog>
 {% endif %}
 </body>
 </html>
