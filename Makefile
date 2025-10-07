@@ -1,32 +1,13 @@
-.PHONY: all compress-js compress-css
+.PHONY: all update-dependencies compress-css generate-bulma-from-scss
 
-all: compress-js compress-css prepare-images generate-preview-images check-references
+all: update-dependencies compress-css generate-bulma-from-scss
 
-compress-js:
-	terser -o assets/script.min.js assets/script.js
-	terser -o assets/markdown-it-attrs.min.js assets/markdown-it-attrs.js
-	terser -o assets/markdown-it-footnote-bulma.min.js assets/markdown-it-footnote-bulma.js
-	terser -o assets/markdown-it-tags.min.js assets/markdown-it-tags.js
-	terser -o assets/OrbitControls.min.js assets/OrbitControls.js
-	terser -o assets/STLLoader.min.js assets/STLLoader.js
-
-compress-css:
-	node-sass assets/style.css --output-style compressed > assets/style.min.css
-
-prepare-images: lowercase-filenames exif-scrub
-
-lowercase-filenames:
-	find posts/ -depth -name '*.*' -type f -exec bash -c 'base=${0%.*} ext=${0##*.} a=$base.${ext,,}; [ "$a" != "$0" ] && mv -- "$0" "$a"' {} \;
-
-exif-scrub:
-	find posts/ -iname '*.jpg' | xargs exiftool -all=
-	find posts/ -iname '*.jpg_original' | xargs -r rm
+compress-css: generate-bulma-from-scss
+	css-minifier -l 2 -i public/assets/bulmaswatch.custom.css -o public/assets/bulmaswatch.custom.min.css
+	css-minifier -l 2 -i public/assets/style.css -o public/assets/style.min.css
 
 generate-bulma-from-scss:
-	npm run build
+	sass-rs < public/assets/scss/1125-bulma.scss > public/assets/bulmaswatch.custom.css
 
-generate-preview-images:
-	. venv/bin/activate; grep -r '{.previewimage}' posts/ | python3 generate-preview-images.py
-
-check-references:
-	. venv/bin/activate; find posts/ -name '*.md' | python3 check-references.py
+update-dependencies:
+	cargo install sass-rs css-minifier

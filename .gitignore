@@ -1,8 +1,6 @@
 .idea
-venv
-posts/
-post_index.json
-update_diffs/
-updates.json
+api/target/
+public/posts/
+public/p/
 package-lock.json
 node_modules

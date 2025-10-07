@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>eleven25</title>
+
+    <link rel="icon" href="../assets/favicon.png">
+
+    <link rel="stylesheet" href="../assets/fonts/pressstart2p.css">
+    <link rel="stylesheet" href="../assets/bulmaswatch.custom.min.css">
+    <link rel="stylesheet" href="../assets/style.min.css">
+</head>
+<body>
+
+<div class="column is-three-fifths is-offset-one-fifth hero has-box-shadow" id="start-logo-hero">
+    <div class="columns">
+        <div class="column is-two-fifths">
+            <a href="overview.html">
+                <svg id="logo" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 100">
+                    <defs>
+                        <linearGradient id="gradient1" y1="0" y2="10">
+                            <stop stop-color="#a6bed9" offset="0"/>
+                            <stop stop-color="#2e4b6b" offset="1"/>
+                        </linearGradient>
+                        <linearGradient id="gradient2" y1="0" y2="1">
+                            <stop stop-color="#4d7eb3" offset="0"/>
+                            <stop stop-color="#375a7f" offset="1"/>
+                        </linearGradient>
+                        <filter id="dropshadow" height="130%">
+                            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                            <feOffset dx="3" dy="3" result="offsetblur"/>
+                            <feComponentTransfer>
+                                <feFuncA type="linear" slope="0.3"/>
+                            </feComponentTransfer>
+                            <feMerge>
+                                <feMergeNode/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <g>
+                        <text id="text" x="0%" y="90%" font-family="Press-Start-2P" font-size="60" font-weight="900"
+                              letter-spacing="10"
+                              stroke-width="3" stroke="url(#gradient1)" fill="url(#gradient2)"
+                              style="filter:url(#dropshadow)">>_eleven25
+                        </text>
+                    </g>
+                </svg>
+            </a>
+        </div>
+        <div class="column is-two-fifth is-offset-one-fifths has-text-right">
+            I'm someone from the internet.<br>
+            I build/mod/fix things.<br>
+            And I blog about it.
+        </div>
+    </div>
+
+</div>
+
+<nav class="navbar is-primary has-box-shadow" id="nav" role="navigation" aria-label="main navigation">
+    <div class="column is-three-fifths is-offset-one-fifth">
+        <a role="button" class="navbar-burger" data-target="navMenu" aria-label="menu" aria-expanded="false">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+
+        <div class="navbar-menu" id="navMenu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="overview.html">
+                    Overview
+                </a>
+                <a class="navbar-item" href="recent-posts.html">
+                    Recent posts
+                </a>
+            </div>
+
+            <div class="navbar-end">
+                <a class="navbar-item" href="https://github.com/x1125" target="_blank">
+                    Github
+                </a>
+                <a class="navbar-item" href="contact.html">
+                    Contact
+                </a>
+                <a class="navbar-item" href="about.html">
+                    About
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+{% if headlines %}
+    <div class="column is-2 is-hidden-mobile" id="headline-index-container">
+        <p class="menu-label">
+            Sections
+        </p>
+        <aside class="menu">
+            <ul class="menu-list">
+                {% for headline in headlines %}
+                    <li><a href="#{{ headline.id }}">{{ headline.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </aside>
+    </div>
+{% endif %}
+
+<div class="column is-three-fifths is-offset-one-fifth has-box-shadow has-text-centered" id="start-content-hero">
+    <noscript>
+        <article class="message content-container is-warning">
+            <div class="message-header">
+                <p>Javascript disabled</p>
+            </div>
+            <div class="message-body">Some parts won't be accessible.</div>
+        </article>
+        <hr>
+    </noscript>
+
+    <div id="content" class="has-text-left content">
+        {% if status %}
+            <div class="tags has-addons">
+                <span class="tag is-dark">Status</span>{% if status == "done" %}<span class="tag is-success">{{ status }}</span>{% elif status == "abandoned" %}<span class="tag is-danger">{{ status }}</span>{% else %}<span class="tag is-primary">{{ status }}</span>{% endif %}
+            </div>
+        {% endif %}
+        {{ content | safe }}
+    </div>
+</div>
+
+<div id="scrolltop" class="scrolltop-hidden" onclick="document.documentElement.scrollTop=0;document.body.scrollTop=0">
+    <i data-icon="solid/square-caret-up"></i>
+    UP
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('scroll', function (e) {
+            document.getElementById('scrolltop').classList.toggle('scrolltop-hidden',
+                e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
+        });
+
+        // Get all "navbar-burger" elements
+        const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+        // Add a click event on each of them
+        $navbarBurgers.forEach(el => {
+            el.addEventListener('click', () => {
+
+                // Get the target from the "data-target" attribute
+                const target = el.dataset.target;
+                const $target = document.getElementById(target);
+
+                // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                el.classList.toggle('is-active');
+                $target.classList.toggle('is-active');
+
+            });
+        });
+    });
+</script>
+
+{% if features %}
+    {% if 'preview' in features or '3d' in features %}
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                document.addEventListener('keydown', function (e) {
+                    const activeModal = document.querySelector('.modal.is-active');
+                    if (e.key === 'Escape' && activeModal != null) {
+                        activeModal.classList.remove('is-active');
+                    }
+                });
+            });
+        </script>
+    {% endif %}
+{% endif %}
+
+{% if features and 'preview' in features %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageModal = document.getElementById('ImageModal');
+            document.querySelectorAll('.preview-image').forEach((elem) => {
+                elem.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    imageModal.classList.add('is-active');
+                    imageModal.querySelector('.modal-content').innerHTML = '<img alt="" src="' + e.target.parentNode.getAttribute('href') + '">';
+                });
+            });
+        });
+    </script>
+
+    <div class="modal" id="ImageModal">
+        <div class="modal-background"></div>
+        <div class="modal-content"></div>
+        <button class="modal-close is-large" aria-label="close"
+                onclick="this.parentNode.classList.remove('is-active')"></button>
+    </div>
+{% endif %}
+
+{% if features and '3d' in features %}
+    <script src="../assets/three.min.js"></script>
+    <script src="../assets/STLLoader.min.js"></script>
+    <script src="../assets/Detector.min.js"></script>
+    <script src="../assets/OrbitControls.min.js"></script>
+
+    <script>
+        const RenderFrame = {
+            heightFix: -10,
+
+            content: null,
+            path: null,
+
+            scene: null,
+            camera: null,
+            renderer: null,
+
+            init: function (path, content) {
+                this.content = content;
+                this.path = path;
+
+                this.scene = new THREE.Scene();
+                this.scene.add(new THREE.AmbientLight(0x999999));
+
+                this.camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 500);
+                this.camera.up.set(0, 0, 1);
+                this.camera.position.set(0, -9, 6);
+
+                this.camera.add(new THREE.PointLight(0xffffff, 0.8));
+
+                this.scene.add(this.camera);
+
+                const grid = new THREE.GridHelper(25, 50, 0xffffff, 0x555555);
+                grid.rotateOnAxis(new THREE.Vector3(1, 0, 0), 90 * (Math.PI / 180));
+                this.scene.add(grid);
+
+                this.renderer = new THREE.WebGLRenderer({antialias: true});
+                this.renderer.setClearColor(0x999999);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.setSize(this.content.clientWidth, this.content.clientHeight + this.heightFix);
+
+                const loader = new THREE.STLLoader();
+                const material = new THREE.MeshPhongMaterial({color: 0x0e2045, specular: 0x111111, shininess: 200});
+                loader.load(this.path, (geometry) => {
+                    const mesh = new THREE.Mesh(geometry, material);
+
+                    mesh.position.set(0, 0, 0);
+                    mesh.rotation.set(0, 0, 0);
+                    mesh.scale.set(.04, .04, .04);
+
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+
+                    this.scene.add(mesh);
+                    this.renderer.render(this.scene, this.camera);
+                });
+
+                const controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                controls.addEventListener('change', () => {
+                    this.renderer.render(this.scene, this.camera)
+                });
+                controls.target.set(0, 1.2, 0);
+                controls.update();
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(this.content.clientWidth, this.content.clientHeight + this.heightFix);
+                    this.renderer.render(this.scene, this.camera)
+                }, false);
+
+                content.innerHTML = '';
+                content.appendChild(this.renderer.domElement);
+            },
+        };
+
+        const view3D = function (e) {
+            e.preventDefault();
+            const preview3D = document.getElementById('STLViewerModal');
+            preview3D.classList.add('is-active');
+            RenderFrame.init(e.target.getAttribute('href'), preview3D.querySelector('.modal-content'));
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('a').forEach((elem) => {
+                if (elem.href.endsWith('.stl')) {
+                    elem.addEventListener('click', view3D);
+                    elem.classList.add('button');
+                }
+            });
+        });
+    </script>
+
+    <div class="modal" id="STLViewerModal">
+        <div class="modal-background"></div>
+        <div class="modal-content"></div>
+        <button class="modal-close is-large" aria-label="close"
+                onclick="this.parentNode.classList.remove('is-active')"></button>
+    </div>
+{% endif %}
+</body>
+</html>

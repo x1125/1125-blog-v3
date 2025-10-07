@@ -1,0 +1,5 @@
+<ol>
+{% for post in posts %}
+    <li><a href="{{ post.filename | replace(from=".md", to=".html") }}">{{ post.filename | replace(from=".md", to="") | replace(from="_", to=" ") }}</a> ({{ post.created }})</li>
+{% endfor %}
+</ol>

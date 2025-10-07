@@ -1,0 +1,23 @@
+@charset "utf-8";
+
+@import "node_modules/bulmaswatch/darkly/variables";
+
+@import "node_modules/bulma/sass/base/generic";
+
+@import "node_modules/bulma/sass/components/modal";
+@import "node_modules/bulma/sass/components/menu";
+@import "node_modules/bulma/sass/components/navbar";
+@import "node_modules/bulma/sass/grid/columns";
+@import "node_modules/bulma/sass/elements/button";
+@import "node_modules/bulma/sass/elements/content";
+@import "node_modules/bulma/sass/elements/tag";
+@import "node_modules/bulma/sass/helpers/typography";
+@import "node_modules/bulma/sass/helpers/color";
+@import "node_modules/bulma/sass/helpers/visibility";
+
+@import "node_modules/bulma/sass/utilities/controls";
+@import "node_modules/bulma/sass/utilities/extends";
+
+$bulmaswatch-import-font: false;
+
+@import "node_modules/bulmaswatch/darkly/overrides";
