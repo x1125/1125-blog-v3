@@ -4,6 +4,20 @@ const pathDelimiter = '/';
 const sectionDelimiter = ':';
 const footnoteDelimiter = '^';
 
+const Tags = {
+    'in-progress': 'warning',
+    'done': 'success',
+    'abandoned': 'black',
+};
+
+let STLViewerLibsLoaded = false;
+const STLViewerLibs = [
+    'assets/three.min.js',
+    'assets/STLLoader.min.js',
+    'assets/Detector.min.js',
+    'assets/OrbitControls.min.js',
+];
+
 const Request = {
     path: [],
     section: null,
@@ -36,15 +50,172 @@ const Request = {
     }
 };
 
-const Tags = {
-    'in-progress': 'warning',
-    'done': 'success',
-    'abandoned': 'black',
+const ScriptLoader = {
+    loadArray: function (scripts) {
+        scripts.reverse();
+        return new Promise((resolve, reject) => {
+            this._recursiveLoad(scripts, resolve, reject);
+        });
+    },
+    _recursiveLoad: function(scriptFiles, resolve, reject){
+        const scriptFile = scriptFiles.pop();
+        if (typeof scriptFile === 'undefined') {
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.onload = function () {
+            ScriptLoader._recursiveLoad(scriptFiles, resolve, reject);
+        };
+        script.onerror = function () {
+            reject(`unable to loader ${scriptFile}`);
+        };
+        script.src = scriptFile  + '?' + new Date().getTime();
+        document.head.appendChild(script);
+    }
+};
+
+const RenderFrame = {
+    heightFix: -10,
+
+    content: null,
+    path: null,
+
+    scene: null,
+    camera: null,
+    renderer: null,
+
+    init: function(path, content) {
+        this.content = content;
+        this.path = path;
+
+        this.scene = new THREE.Scene();
+        this.scene.add(new THREE.AmbientLight(0x999999));
+
+        this.camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 500);
+        this.camera.up.set(0, 0, 1);
+        this.camera.position.set(0, -9, 6);
+
+        this.camera.add(new THREE.PointLight(0xffffff, 0.8));
+
+        this.scene.add(this.camera);
+
+        const grid = new THREE.GridHelper(25, 50, 0xffffff, 0x555555);
+        grid.rotateOnAxis(new THREE.Vector3(1, 0, 0), 90 * (Math.PI / 180));
+        this.scene.add(grid);
+
+        this.renderer = new THREE.WebGLRenderer({antialias: true});
+        this.renderer.setClearColor(0x999999);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(this.content.clientWidth, this.content.clientHeight + this.heightFix);
+
+        const loader = new THREE.STLLoader();
+        const material = new THREE.MeshPhongMaterial({color: 0x0e2045, specular: 0x111111, shininess: 200});
+        loader.load(this.path, (geometry) => {
+            const mesh = new THREE.Mesh(geometry, material);
+
+            mesh.position.set(0, 0, 0);
+            mesh.rotation.set(0, 0, 0);
+            mesh.scale.set(.04, .04, .04);
+
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            this.scene.add(mesh);
+            this.renderer.render(this.scene, this.camera);
+        });
+
+        const controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        controls.addEventListener('change', () => {
+            this.renderer.render(this.scene, this.camera)
+        });
+        controls.target.set(0, 1.2, 0);
+        controls.update();
+        window.addEventListener('resize', ()=>{
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(this.content.clientWidth, this.content.clientHeight + this.heightFix);
+            this.renderer.render(this.scene, this.camera)
+        }, false);
+
+        content.innerHTML = '';
+        content.appendChild(this.renderer.domElement);
+    },
+};
+
+const Menu = {
+    render: function(postIndex) {
+        const addSubNode = (prefix, pathArr) => {
+            // starting with the first element
+            const nodeName = pathArr.shift();
+
+            // construct full path
+            let path = nodeName;
+            let hasPrefix = false;
+            if (prefix.length > 0 && prefix[0].length > 0) {
+                path = prefix.join('/') + '/' + path;
+                hasPrefix = true;
+            }
+
+            // add only if not already exists
+            if (document.querySelector(`a[href="#${path}"]`) === null) {
+                let target = '#menuList';
+                if (hasPrefix) {
+                    target += ` ul[data-id="${prefix.join('/')}"]`;
+
+                    if (document.querySelector(target) === null) {
+                        document.querySelector(`li[data-id="${prefix.join('/')}"]`).innerHTML +=
+                            `<ul data-id="${prefix.join('/')}"></ul>`;
+                    }
+                }
+                document.querySelector(target).innerHTML += this._newMenuNode(path, nodeName);
+            }
+
+            // element moved from pathArr to prefix; next iteration can start
+            if (pathArr.length > 0 && pathArr[0].length > 0) {
+                prefix.push(nodeName);
+                addSubNode(prefix, pathArr);
+            }
+        };
+        postIndex.forEach((post) => {
+            addSubNode([], post.split('/'));
+        });
+    },
+    _newMenuNode: function(link, title) {
+        return `<li data-id="${link}"><a href="#${link}">&raquo;&nbsp;${title.split('_').join(' ')}</a></li>`;
+    }
+};
+
+const Router = {
+    route: function(){
+        Request.parse(window.location.hash);
+
+        let firstElement = '';
+        if (Request.path.length > 0) {
+            firstElement = Request.path[0];
+        }
+
+        SetActiveMenuItem(Request.path);
+
+        if (firstElement === '') {
+            window.location.hash = '#latest';
+            return;
+        }
+
+        if (firstElement === 'latest') {
+            RenderRecentlyUpdatedAction();
+            return;
+        }
+
+        RenderPostAction('posts/' + Request.buildPath() + '.md');
+    }
 };
 
 const markdownRenderer = window.markdownit()
     .use(window.markdownitFootnote)
     .use(window.markdownitFootnoteBulma(Request))
+    .use(window.markdownItAttrs)
     .use(window.markdownitTags(Tags));
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,90 +226,25 @@ document.addEventListener('DOMContentLoaded', () => {
             // required for footnotes
             return;
         }
-        DoRouting();
+        Router.route();
     }, false);
 
-    LoadMenu(() => DoRouting());
-    initScrollToTop();
-});
+    window.addEventListener('scroll', function (e) {
+        document.getElementById('scrolltop').classList.toggle('scrolltop-hidden',
+            e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
+    });
 
-function LoadMenu(cb) {
     HttpGetRequest('post_index')
         .then((postIndexData) => {
             const postIndex = JSON.parse(postIndexData);
-            RenderMenu(postIndex);
+            Menu.render(postIndex);
         })
         .finally(() => {
-            if (cb) {
-                cb();
-            }
+            Router.route();
         });
-}
 
-function RenderMenu(postIndex) {
-    const addSubNode = (prefix, pathArr) => {
-        // starting with the first element
-        const nodeName = pathArr.shift();
-
-        // construct full path
-        let path = nodeName;
-        let hasPrefix = false;
-        if (prefix.length > 0 && prefix[0].length > 0) {
-            path = prefix.join('/') + '/' + path;
-            hasPrefix = true;
-        }
-
-        // add only if not already exists
-        if (document.querySelector(`a[href="#${path}"]`) === null) {
-            let target = '#menuList';
-            if (hasPrefix) {
-                target += ` ul[data-id="${prefix.join('/')}"]`;
-
-                if (document.querySelector(target) === null) {
-                    document.querySelector(`li[data-id="${prefix.join('/')}"]`).innerHTML +=
-                        `<ul data-id="${prefix.join('/')}"></ul>`;
-                }
-            }
-            document.querySelector(target).innerHTML += NewMenuNode(path, nodeName);
-        }
-
-        // element moved from pathArr to prefix; next iteration can start
-        if (pathArr.length > 0 && pathArr[0].length > 0) {
-            prefix.push(nodeName);
-            addSubNode(prefix, pathArr);
-        }
-    };
-    postIndex.forEach((post) => {
-        addSubNode([], post.split('/'));
-    });
-}
-
-function NewMenuNode(link, title) {
-    return `<li data-id="${link}"><a href="#${link}">&raquo;&nbsp;${title.split('_').join(' ')}</a></li>`;
-}
-
-function DoRouting() {
-    Request.parse(window.location.hash);
-
-    let firstElement = '';
-    if (Request.path.length > 0) {
-        firstElement = Request.path[0];
-    }
-
-    SetActiveMenuItem(Request.path);
-
-    if (firstElement === '') {
-        window.location.hash = '#latest';
-        return;
-    }
-
-    if (firstElement === 'latest') {
-        RenderRecentlyUpdatedAction();
-        return;
-    }
-
-    RenderPostAction('posts/' + Request.buildPath() + '.md');
-}
+    InitIcons();
+});
 
 function HttpGetRequest(url) {
     return new Promise((resolve, reject) => {
@@ -184,6 +290,8 @@ function RenderPostAction(mdPath) {
             ScrollToAnchor(Request.buildFootnote());
         }
 
+        InitPostListeners();
+
     }).catch((error) => {
         if (error === 404) {
             SetMessageBox('warning', 'Page not found', 'The Page could not be found, please try again');
@@ -225,6 +333,41 @@ function AddHeadlineIndex() {
     contentContainer.prepend(headlineIndexContainer);
 }
 
+function InitPostListeners() {
+    document.querySelectorAll('a[data-toggle="3d-preview"]').forEach((el) => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            OpenViewSTLModal(e.target.getAttribute('href'));
+        });
+    });
+}
+
+function OpenViewSTLModal(path) {
+    LoadSTLViewerLibs(() => {
+        const preview3D = document.getElementById('STLViewerModal');
+        preview3D.classList.add('is-active');
+        RenderFrame.init(path, preview3D.querySelector('.modal-content'));
+    });
+}
+
+function LoadSTLViewerLibs(cb) {
+    if (!STLViewerLibsLoaded) {
+        const overlayLoader = document.getElementById('overlay-loader');
+        overlayLoader.classList.remove('is-hidden');
+        ScriptLoader.loadArray(STLViewerLibs)
+            .then(cb)
+            .catch((err) => {
+                alert(`Unable to loadArray STL Viewer: ${err}`);
+            })
+            .finally(()=>{
+                overlayLoader.classList.add('is-hidden');
+            });
+        STLViewerLibsLoaded = true;
+        return;
+    }
+    cb();
+}
+
 function SetMessageBox(type, title, body) {
     document.querySelector('#message-container').classList.remove(['is-dark', 'is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger']);
     document.querySelector('#message-container').classList.add('is-' + type);
@@ -252,19 +395,14 @@ function ScrollToAnchor(id) {
     (document.scrollingElement || document.documentElement).scrollTop = targetElement.offsetTop;
 }
 
-function initScrollToTop() {
-    window.addEventListener('scroll', function (e) {
-        document.getElementById('scrolltop').classList.toggle('scrolltop-hidden',
-            e.target.scrollingElement.scrollTop < e.target.scrollingElement.clientHeight);
+function InitIcons() {
+    document.querySelectorAll('i[data-icon]').forEach((elem) => {
+        const iconPath = `assets/fontawesome/svgs/${elem.getAttribute('data-icon')}.svg`;
+        HttpGetRequest(iconPath)
+            .then((svg) => {
+                elem.innerHTML = svg;
+            });
     });
-}
-
-function scrollToTop() {
-    document.documentElement.scrollTop = 0;
-}
-
-function contrastMode() {
-    document.body.classList.toggle('light-mode');
 }
 
 function renderUpdates(updates, target) {

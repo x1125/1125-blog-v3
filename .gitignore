@@ -4,3 +4,5 @@ posts/
 post_index
 update_diffs/
 updates
+package-lock.json
+node_modules

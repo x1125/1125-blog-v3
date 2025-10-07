@@ -5,14 +5,20 @@ html {
 html, body {
     /* second row is Bumla's default */
     font-family: 'Hack',
-        "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 }
 
 span {
-    font-family: "Lato",-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue","Helvetica","Arial",sans-serif;
+    font-family: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 }
 
-ul#menuList  li a:focus {
+i[data-icon] {
+    display: inline-block;
+    height: 15px;
+    width: 15px;
+}
+
+ul#menuList li a:focus {
     outline: none;
 }
 
@@ -27,8 +33,8 @@ ul#menuList  li a:focus {
     text-shadow: 1px 1px 1px rgba(0, 0, 0, .1);
 }
 
-#menu-bottom a {
-    color: #c9c9c9;
+#menu-bottom a i[data-icon] {
+    fill: #c9c9c9;
 }
 
 pre.mail-graphics {
@@ -48,12 +54,17 @@ pre.mail-graphics {
 }
 
 #main-container blockquote {
-    border-left: 3px solid rgba(223,215,202,0.75);
+    border-left: 3px solid rgba(223, 215, 202, 0.75);
     padding-left: 5px;
 }
 
 #main-container .headline-index-container {
     float: right;
+    margin-left: 10px;
+}
+
+#main-container section {
+    padding: 0.5rem 0 1.5rem 0;
 }
 
 .update-section .diff {
@@ -122,7 +133,7 @@ pre.mail-graphics {
     right: 20px;
     bottom: 10px;
     font-size: 30pt;
-    cursor:pointer;
+    cursor: pointer;
     transition: 0.5s;
     -moz-transition: 0.5s;
     -webkit-transition: 0.5s;
@@ -171,4 +182,26 @@ pre.mail-graphics {
     border-right: 1px solid rgba(255, 255, 255, .1);
     box-shadow: 1px 1px 3px rgba(0, 0, 0, .3);
     text-shadow: 1px 1px 1px rgba(0, 0, 0, .1);
+}
+
+/* STL viewer */
+
+#STLViewerModal .modal-content {
+    width: 98%;
+    height: 98%;
+}
+
+#STLViewerModal .modal-content canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* top loader */
+
+#overlay-loader {
+    width: 100%;
+    z-index: 99999;
+    position: fixed;
+    left: 0;
+    top: 0;
 }

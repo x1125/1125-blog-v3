@@ -9,16 +9,17 @@
     <link rel="icon" href="assets/favicon.png">
 
     <link rel="stylesheet" href="assets/fonts/roboto.css">
-    <link rel="stylesheet" href="assets/fonts/lato.css">
     <link rel="stylesheet" href="assets/fonts/hack.css">
-    <link rel="stylesheet" href="assets/fontawesome/all.min.css">
-    <link rel="stylesheet" href="assets/bulma.min.css">
-    <link rel="stylesheet" href="assets/style.css">
+    <!--<link rel="stylesheet" href="assets/fontawesome/all.min.css">-->
+    <link rel="stylesheet" href="assets/bulmaswatch.dakly.custom.min.css">
+    <link rel="stylesheet" href="assets/style.min.css">
 
+    <!--<script type="text/javascript" src="assets/fontawesome/fontawesome.min.js"></script>-->
     <script type="text/javascript" src="assets/markdown-it.min.js"></script>
     <script type="text/javascript" src="assets/markdown-it-footnote.min.js"></script>
-    <script type="text/javascript" src="assets/markdown-it-footnote-bulma.js"></script>
-    <script type="text/javascript" src="assets/markdown-it-tags.js"></script>
+    <script type="text/javascript" src="assets/markdown-it-footnote-bulma.min.js"></script>
+    <script type="text/javascript" src="assets/markdown-it-attrs.min.js"></script>
+    <script type="text/javascript" src="assets/markdown-it-tags.min.js"></script>
 </head>
 <body>
 
@@ -39,7 +40,9 @@
                         </linearGradient>
                     </defs>
                     <g>
-                        <text id="text" x="22%" y="75" font-family="Roboto" font-size="100" font-weight="900" stroke-width="3" stroke="url(#gradient1)" fill="url(#gradient2)">eleven25</text>
+                        <text id="text" x="22%" y="75" font-family="Roboto" font-size="100" font-weight="900"
+                              stroke-width="3" stroke="url(#gradient1)" fill="url(#gradient2)">eleven25
+                        </text>
                     </g>
                 </svg>
             </a>
@@ -61,13 +64,15 @@
                     <hr>
                     <div class="content has-text-centered" id="menu-bottom">
                         <p>
-                            <a href="#" onclick="contrastMode();return false"><i class="fas fa-adjust"></i></a>
+                            <a href="#" onclick="document.body.classList.toggle('light-mode');return false"><i data-icon="solid/adjust">Contrast</i></a>
                             &nbsp;
-                            <a href="#" onclick="document.getElementById('mailModal').classList.add('is-active');return false"><i class="far fa-envelope"></i></a>
+                            <a href="#"
+                               onclick="document.getElementById('mailModal').classList.add('is-active');return false"><i data-icon="solid/envelope">Contact</i></a>
                             &nbsp;
-                            <a href="https://github.com/x1125" target="_blank"><i class="fab fa-github"></i></a>
+                            <a href="https://github.com/x1125" target="_blank"><i data-icon="brands/github">Github</i></a>
                             &nbsp;
-                            <a href="#" onclick="document.getElementById('infoModal').classList.add('is-active');return false"><i class="fa fa-info-circle"></i></a>
+                            <a href="#"
+                               onclick="document.getElementById('infoModal').classList.add('is-active');return false"><i data-icon="solid/info-circle">Info</i></a>
                         </p>
                     </div>
                 </div>
@@ -103,7 +108,7 @@
     </div>
 </div>
 
-<div id="scrolltop" class="scrolltop-hidden" onclick="scrollToTop()">
+<div id="scrolltop" class="scrolltop-hidden" onclick="document.documentElement.scrollTop=0">
     <i class="fas fa-caret-square-up"></i>
 </div>
 
@@ -112,7 +117,8 @@
     <div class="modal-card">
         <header class="modal-card-head">
             <p class="modal-card-title">Contact via email</p>
-            <button class="delete" aria-label="close" onclick="this.parentNode.parentNode.parentNode.classList.remove('is-active')"></button>
+            <button class="delete" aria-label="close"
+                    onclick="this.parentNode.parentNode.parentNode.classList.remove('is-active')"></button>
         </header>
         <section class="modal-card-body">
             <pre class="mail-graphics">
@@ -134,19 +140,32 @@
     <div class="modal-card">
         <header class="modal-card-head">
             <p class="modal-card-title">Powered by</p>
-            <button class="delete" aria-label="close" onclick="this.parentNode.parentNode.parentNode.classList.remove('is-active')"></button>
+            <button class="delete" aria-label="close"
+                    onclick="this.parentNode.parentNode.parentNode.classList.remove('is-active')"></button>
         </header>
         <section class="modal-card-body">
             <ul>
-                <li><a href="https://bulma.io/">Bulma Framework</a></li>
-                <li><a href="https://jenil.github.io/bulmaswatch/">Bulmaswatch</a></li>
-                <li><a href="https://patterncooler.com/">patterncooler</a></li>
-                <li><a href="https://fontawesome.com/">Font Awesome</a></li>
-                <li><a href="https://sourcefoundry.org/hack/">Hack Font</a></li>
-                <li><a href="https://github.com/google/roboto/">Roboto Font</a></li>
+                <li><a href="https://bulma.io/">Bulma</a> - CSS Framework</li>
+                <li><a href="https://jenil.github.io/bulmaswatch/">Bulmaswatch</a> - Bulma Templates</li>
+                <li><a href="https://patterncooler.com/">patterncooler</a> - Background pattern</li>
+                <li><a href="https://fontawesome.com/">Font Awesome</a> - Icons</li>
+                <li><a href="https://sourcefoundry.org/hack/">Hack Font</a> - Console-like Font</li>
+                <li><a href="https://github.com/google/roboto/">Roboto Font</a> - Another nice Font</li>
+                <li><a href="https://github.com/kaitlynhova/Three.js-STL-Viewer">Three.js-STL-Viewer</a> - Browser STL renderer</li>
+                <li><a href="https://github.com/terser/terser">Terser</a> - JS compressor</li>
             </ul>
         </section>
     </div>
+</div>
+
+<div class="modal" id="STLViewerModal">
+    <div class="modal-content"></div>
+    <button class="modal-close is-large" aria-label="close"
+            onclick="this.parentNode.classList.remove('is-active')"></button>
+</div>
+
+<div id="overlay-loader" class="is-hidden">
+    <progress class="progress" max="100"></progress>
 </div>
 
 <script type="text/javascript" src="assets/script.js"></script>
