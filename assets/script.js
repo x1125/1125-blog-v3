@@ -238,7 +238,17 @@ const Router = {
     }
 };
 
-const markdownRenderer = window.markdownit()
+const markdownRenderer = window.markdownit({
+    highlight: function (str, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+            try {
+                return hljs.highlight(str, { language: lang }).value;
+            } catch (__) {}
+        }
+
+        return ''; // use external default escaping
+    }
+})
     .use(window.markdownitFootnote)
     .use(window.markdownitFootnoteBulma(Request))
     .use(window.markdownItAttrs)

@@ -9,14 +9,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "bulma": "^0.9.2",
-    "css-loader": "^5.2.4",
-    "mini-css-extract-plugin": "^1.6.0",
-    "node-sass": "^5.0.0",
-    "sass-loader": "^11.0.1",
-    "webpack-cli": "^4.6.0"
+    "bulma": "^0.8.1",
+    "bulmaswatch": "^0.8.1",
+    "css-loader": "^6.2.0",
+    "mini-css-extract-plugin": "^2.2.0",
+    "node-sass": "^6.0.1",
+    "sass-loader": "^12.1.0",
+    "webpack-cli": "^4.8.0"
   },
   "dependencies": {
-    "terser": "^5.7.0"
+    "terser": "^5.7.1"
   }
 }
