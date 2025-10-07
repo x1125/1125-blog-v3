@@ -103,11 +103,11 @@ async fn webserver(config: Config) {
                                        .cert(tide_cert_path)
                                        .key(tide_key_path),
             ).await {
-            eprintln!("{}", e)
+            eprintln!("unable to start webserver: {}", e)
         }
     } else {
         if let Err(e) = app.listen(listen).await {
-            eprintln!("{}", e)
+            eprintln!("unable to start webserver: {}", e)
         }
     }
 }
