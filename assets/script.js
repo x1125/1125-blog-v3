@@ -38,7 +38,8 @@ const Request = {
 
 const Tags = {
     'in-progress': 'warning',
-    'done': 'success'
+    'done': 'success',
+    'abandoned': 'black',
 };
 
 const markdownRenderer = window.markdownit()
@@ -112,6 +113,7 @@ function RenderMenu(postIndex) {
 }
 
 function NewMenuNode(link, title) {
+    title = title.split('_').join(' ');
     return `<li data-id="${link}"><a href="#${link}">&raquo;&nbsp;${title}</a></li>`;
 }
 
@@ -166,6 +168,7 @@ function RenderPostAction(mdPath) {
     ShowContentContainer('loading');
     HttpGetRequest(mdPath).then((markdownData) => {
         SetMainContent(markdownRenderer.render(markdownData));
+        AddHeadlineIndex();
         ShowContentContainer('main');
 
         if (Request.section !== null) {
@@ -195,6 +198,24 @@ function ShowContentContainer(type) {
 
 function SetMainContent(content) {
     document.getElementById('main-container').innerHTML = content;
+}
+
+function AddHeadlineIndex() {
+    const contentContainer = document.getElementById('main-container');
+    const headlines = contentContainer.querySelectorAll('h2,h3,h4,h5,h6');
+    if (headlines.length < 1) {
+        return;
+    }
+
+    const headlineIndexContainer = document.createElement('div');
+    headlineIndexContainer.classList.add('column', 'is-one-fifth', 'custom-box', 'headline-index-container');
+    let htmlContent = '<ul>';
+    headlines.forEach((headline) => {
+        htmlContent += `<li><a href="#${headline.id}">${headline.innerText}</a></li>`;
+    });
+    htmlContent += '</ul>';
+    headlineIndexContainer.innerHTML = htmlContent;
+    contentContainer.prepend(headlineIndexContainer);
 }
 
 function SetMessageBox(type, title, body) {
