@@ -47,8 +47,8 @@ const markdownRenderer = window.markdownit()
     .use(window.markdownitFootnoteBulma(Request))
     .use(window.markdownitTags(Tags));
 
-document.addEventListener("DOMContentLoaded", function () {
-    window.addEventListener("hashchange", function (e) {
+document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('hashchange', (e) => {
         const newRequest = new Request.parse(e.newURL.split('#')[1]);
         if (newRequest.path.join(pathDelimiter) === Request.path.join(pathDelimiter)) {
             // no change occurred
@@ -141,7 +141,7 @@ function DoRouting() {
 }
 
 function HttpGetRequest(url) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
