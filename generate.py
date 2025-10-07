@@ -55,6 +55,9 @@ for commit in repo.iter_commits():
         elif diff.deleted_file:
             change = 'deleted'
             affected_file = diff.a_path
+        else:
+            change = 'content'
+            affected_file = diff.a_path
 
         if not affected_file.endswith('.md'):
             continue
