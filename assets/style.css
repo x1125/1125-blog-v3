@@ -180,12 +180,7 @@ pre.mail-graphics {
 }
 
 .previewimage {
-    max-width: 500px;
     vertical-align: top;
-}
-
-.previewimage.active {
-    max-width: 100%;
 }
 
 .previewimage:hover {
