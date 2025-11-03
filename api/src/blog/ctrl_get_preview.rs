@@ -47,7 +47,9 @@ pub async fn ctrl_get_preview(mut req: Request<Config>) -> tide::Result {
     };
 
     let posts: Vec<Post> = vec![post];
-    generator.generate_preview_images(&posts);
+    if let Err(e) = generator.generate_preview_images(&posts) {
+        return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate preview images: {}", e.message)));
+    }
     if let Err(e) = generator.remove_exif_data(&posts) {
         return Ok(http_error(StatusCode::InternalServerError, format!("unable to remove exif data: {}", e.message)));
     }

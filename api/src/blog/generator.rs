@@ -5,6 +5,7 @@ use crate::Config;
 use bytebuffer::ByteBuffer;
 use comrak::adapters::SyntaxHighlighterAdapter;
 use comrak::nodes::{AstNode, NodeValue};
+use comrak::options::Plugins;
 use comrak::plugins::syntect::SyntectAdapter;
 use comrak::{markdown_to_html_with_plugins, parse_document, Arena, Options};
 use regex::Regex;
@@ -19,7 +20,6 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
-use comrak::options::Plugins;
 use tera::{Context, Tera};
 
 const DEFAULT_FILTER: &'static str = ".md";
@@ -290,7 +290,7 @@ impl<'a> Generator<'a> {
         }
 
         self.log_time(Some("Generating preview images"), false);
-        self.generate_preview_images(posts);
+        self.generate_preview_images(posts)?;
         self.log_time(None, false);
 
         self.log_time(Some("Removing exif data"), false);
@@ -359,7 +359,7 @@ impl<'a> Generator<'a> {
         }
     }
 
-    pub fn generate_preview_images(&self, posts: &Vec<Post>) {
+    pub fn generate_preview_images(&self, posts: &Vec<Post>) -> Result<(), GeneratorError> {
         for post in posts {
             for preview_image in post.preview_images.iter() {
                 let mut output_path = PathBuf::from(self.output_path.clone());
@@ -367,13 +367,12 @@ impl<'a> Generator<'a> {
                 if !output_path.exists() {
                     let output_base_path = output_path.parent().unwrap();
                     if !output_base_path.exists() {
-                        create_dir(output_base_path).expect(
-                            format!(
+                        if let Err(e) = create_dir(output_base_path) {
+                            return Err(GeneratorError::new(format!(
                                 "Unable to create output directory: {}",
                                 output_base_path.to_string_lossy()
-                            )
-                            .as_str(),
-                        );
+                            )));
+                        }
                     }
                     let mut input_path = PathBuf::from(self.output_path.clone());
                     input_path.push(preview_image.0.clone());
@@ -394,6 +393,7 @@ impl<'a> Generator<'a> {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn remove_exif_data(&self, posts: &Vec<Post>) -> Result<(), GeneratorError> {
