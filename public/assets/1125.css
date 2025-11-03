@@ -245,3 +245,19 @@ article.no-script {
         display: none;
     }
 }
+
+span.width-20 img {
+    width: 20%;
+}
+
+span.width-40 img {
+    width: 40%;
+}
+
+span.width-60 img {
+    width: 60%;
+}
+
+span.width-80 img {
+    width: 80%;
+}
