@@ -143,7 +143,7 @@ impl<'a> Generator<'a> {
             let _ = log_buffer.read_to_string(&mut output);
             return output;
         }
-        return String::new();
+        String::new()
     }
 
     pub fn generate(&mut self) -> Result<(), GeneratorError> {
@@ -332,8 +332,7 @@ impl<'a> Generator<'a> {
     }
 
     fn log_time(&mut self, name: Option<&str>, flush: bool) {
-        if self.log_buffer.is_some() {
-            let log_buffer = self.log_buffer.as_mut().unwrap();
+        if let Some(log_buffer) = self.log_buffer.as_mut() {
             if name.is_some() {
                 let _ = log_buffer.write_all(
                     format!("{:.2?} {}...", self.instant.elapsed(), name.unwrap()).as_bytes(),
@@ -560,11 +559,17 @@ impl<'a> Generator<'a> {
         }
 
         if filtered_files.len() > 0 {
-            let log_buffer = self.log_buffer.as_mut().unwrap();
-            let _ = log_buffer
-                .write_all(format!("\nfound {} entries:\n", filtered_files.len()).as_bytes());
-            for file in filtered_files.iter() {
-                let _ = log_buffer.write_all(format!("{}\n", file).as_bytes());
+            if let Some(log_buffer) = self.log_buffer.as_mut() {
+                let _ = log_buffer
+                    .write_all(format!("\nfound {} entries:\n", filtered_files.len()).as_bytes());
+                for file in filtered_files.iter() {
+                    let _ = log_buffer.write_all(format!("{}\n", file).as_bytes());
+                }
+            } else {
+                println!("\nfound {} entries:", filtered_files.len());
+                for file in filtered_files.iter() {
+                    println!("{}", file);
+                }
             }
         }
 
