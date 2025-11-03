@@ -1,5 +1,9 @@
 <ul id="recent-posts">
 {% for post in posts %}
-    <li>{{ post.created }} - <a href="{{ post.filename | replace(from=".md", to=".html") }}">{{ post.filename | replace(from=".md", to="") | replace(from="_", to=" ") }}</a></li>
+    <li>{{ post.created }} - <a href="{{ post.filename | replace(from=".md", to=".html") }}">{{ post.filename | replace(from=".md", to="") | replace(from="_", to=" ") }}</a>
+    {% if post.updated %}
+        <i>(Updated: {{ post.updated }})</i>
+    {% endif %}
+    </li>
 {% endfor %}
 </ul>

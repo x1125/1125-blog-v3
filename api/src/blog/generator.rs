@@ -23,7 +23,7 @@ use std::time::Instant;
 use tera::{Context, Tera};
 
 const DEFAULT_FILTER: &'static str = ".md";
-const KNOWN_ATTRIBUTES: &'static [&str] = &["created", "status", "tag"];
+const KNOWN_ATTRIBUTES: &'static [&str] = &["created", "updated", "status", "tag"];
 const CUSTOM_POSTS: &'static [&str] = &["recent-posts.md", "overview.md"];
 const STATIC_PAGES: &'static [&str] = &["about.md", "contact.md"];
 const ESCAPABLE_CHARACTERS: &'static [char] = &[
@@ -35,6 +35,7 @@ pub struct Post {
     filename: String,
     tags: Vec<String>,
     created: String,
+    updated: Option<String>,
     status: Option<String>,
     links: Vec<String>,
     images: Vec<String>,
@@ -217,7 +218,19 @@ impl<'a> Generator<'a> {
             // create recent posts
             self.log_time(Some("Generating recent-posts.html"), true);
 
-            posts.sort_by(|a, b| b.created.cmp(&a.created));
+            posts.sort_by(|a, b| {
+                let date_a: &String = if a.updated.is_some() {
+                    a.updated.as_ref().unwrap()
+                } else {
+                    &a.created
+                };
+                let date_b: &String = if b.updated.is_some() {
+                    b.updated.as_ref().unwrap()
+                } else {
+                    &b.created
+                };
+                date_b.cmp(date_a)
+            });
             let filtered_posts: &mut Vec<Post> = &mut vec![];
             for post in posts.iter() {
                 if post.clone().created.len() > 0 {
@@ -367,7 +380,7 @@ impl<'a> Generator<'a> {
                 if !output_path.exists() {
                     let output_base_path = output_path.parent().unwrap();
                     if !output_base_path.exists() {
-                        if let Err(e) = create_dir(output_base_path) {
+                        if let Err(_) = create_dir(output_base_path) {
                             return Err(GeneratorError::new(format!(
                                 "Unable to create output directory: {}",
                                 output_base_path.to_string_lossy()
@@ -589,9 +602,8 @@ impl<'a> Generator<'a> {
             }
         }
 
+        let mut context = Context::new();
         if features.len() > 0 || post.status.is_some() {
-            let mut context = Context::new();
-
             if features.len() > 0 {
                 context.insert("features", &features);
             }
@@ -599,11 +611,13 @@ impl<'a> Generator<'a> {
             if post.status.is_some() {
                 context.insert("status", &post.status.as_ref().unwrap());
             }
-
-            return Some(context);
         }
 
-        return None;
+        if post.updated.is_some() {
+            context.insert("updated", &post.updated.as_ref().unwrap());
+        }
+
+        Some(context)
     }
 
     fn render(
@@ -1076,6 +1090,7 @@ impl<'a> Generator<'a> {
             filename: filename.clone(),
             tags: vec![],
             created: "".to_string(),
+            updated: None,
             status: None,
             links: vec![],
             images: vec![],
@@ -1088,6 +1103,7 @@ impl<'a> Generator<'a> {
             if KNOWN_ATTRIBUTES.contains(&tag.name.as_str()) {
                 match tag.name.as_str() {
                     "created" => post.created = tag.value.clone().unwrap(),
+                    "updated" => post.updated = Some(tag.value.clone().unwrap()),
                     "tag" => post.tags.push(tag.value.clone().unwrap()),
                     "status" => post.status = Some(tag.value.clone().unwrap()),
                     _ => {
