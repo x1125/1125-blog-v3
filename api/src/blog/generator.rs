@@ -6,7 +6,7 @@ use bytebuffer::ByteBuffer;
 use comrak::adapters::SyntaxHighlighterAdapter;
 use comrak::nodes::{AstNode, NodeValue};
 use comrak::plugins::syntect::SyntectAdapter;
-use comrak::{markdown_to_html_with_plugins, parse_document, Arena, ComrakOptions, ComrakPlugins, Options};
+use comrak::{markdown_to_html_with_plugins, parse_document, Arena, Options};
 use regex::Regex;
 use rexiv2::Metadata;
 use serde::Serialize;
@@ -19,6 +19,7 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
+use comrak::options::Plugins;
 use tera::{Context, Tera};
 
 const DEFAULT_FILTER: &'static str = ".md";
@@ -64,8 +65,8 @@ pub struct Generator<'a> {
     input_path: PathBuf,
     output_path: PathBuf,
     filter: String,
-    markdown_options: ComrakOptions<'a>,
-    markdown_plugins: ComrakPlugins<'a>,
+    markdown_options: Options<'a>,
+    markdown_plugins: Plugins<'a>,
     headline_regex: Option<Regex>,
     image_regex: Option<Regex>,
     log_buffer: Option<ByteBuffer>,
@@ -91,12 +92,12 @@ impl<'a> Generator<'a> {
         options.render.hardbreaks = false;
         options.render.github_pre_lang = false;
         options.render.width = 0;
-        options.render.unsafe_ = true;
+        options.render.r#unsafe = true;
         options.render.escape = false;
         options.render.sourcepos = false;
 
         // configure markdown renderer
-        let options = ComrakOptions {
+        let options = Options {
             extension: options.extension,
             parse: Default::default(),
             render: options.render,
@@ -110,7 +111,7 @@ impl<'a> Generator<'a> {
             output_path,
             filter: DEFAULT_FILTER.to_string(),
             markdown_options: options,
-            markdown_plugins: ComrakPlugins::default(),
+            markdown_plugins: Plugins::default(),
             headline_regex: None,
             image_regex: None,
             log_buffer: None,
@@ -119,7 +120,7 @@ impl<'a> Generator<'a> {
             .markdown_plugins
             .render
             .codefence_syntax_highlighter = adapter;
-        return generator;
+        generator
     }
 
     fn clear_output_path(&self) {
@@ -334,12 +335,16 @@ impl<'a> Generator<'a> {
         if self.log_buffer.is_some() {
             let log_buffer = self.log_buffer.as_mut().unwrap();
             if name.is_some() {
-                let _ = log_buffer.write_all(format!("{:.2?} {}...", self.instant.elapsed(), name.unwrap()).as_bytes());
+                let _ = log_buffer.write_all(
+                    format!("{:.2?} {}...", self.instant.elapsed(), name.unwrap()).as_bytes(),
+                );
                 if flush {
                     let _ = log_buffer.write_all("\n".as_bytes());
                 }
             } else {
-                let _ = log_buffer.write_all(format!(" Done (took {:.2?})\n", self.last_instant.elapsed()).as_bytes());
+                let _ = log_buffer.write_all(
+                    format!(" Done (took {:.2?})\n", self.last_instant.elapsed()).as_bytes(),
+                );
                 self.last_instant = Instant::now();
             }
         } else {
@@ -368,7 +373,7 @@ impl<'a> Generator<'a> {
                                 "Unable to create output directory: {}",
                                 output_base_path.to_string_lossy()
                             )
-                                .as_str(),
+                            .as_str(),
                         );
                     }
                     let mut input_path = PathBuf::from(self.output_path.clone());
@@ -556,7 +561,8 @@ impl<'a> Generator<'a> {
 
         if filtered_files.len() > 0 {
             let log_buffer = self.log_buffer.as_mut().unwrap();
-            let _ = log_buffer.write_all(format!("\nfound {} entries:\n", filtered_files.len()).as_bytes());
+            let _ = log_buffer
+                .write_all(format!("\nfound {} entries:\n", filtered_files.len()).as_bytes());
             for file in filtered_files.iter() {
                 let _ = log_buffer.write_all(format!("{}\n", file).as_bytes());
             }
@@ -683,7 +689,8 @@ impl<'a> Generator<'a> {
                 title = Some(title_str.clone());
 
                 if !STATIC_PAGES.contains(&post.filename.as_str()) {
-                    description = Some(self.get_description(file_content.as_str(), title_str.as_str()));
+                    description =
+                        Some(self.get_description(file_content.as_str(), title_str.as_str()));
                 }
             }
             None => {}
@@ -770,12 +777,16 @@ impl<'a> Generator<'a> {
 
     fn get_description(&mut self, content: &str, title: &str) -> String {
         let arena = Arena::new();
-        let root = parse_document(&arena, content, &ComrakOptions::default());
+        let root = parse_document(&arena, content, &Options::default());
         let mut description: String = String::new();
         let mut is_paragraph = false;
 
-        fn iter_nodes<'a, F>(node: &'a AstNode<'a>, f: &F, description: &mut String, is_paragraph: &mut bool)
-        where
+        fn iter_nodes<'a, F>(
+            node: &'a AstNode<'a>,
+            f: &F,
+            description: &mut String,
+            is_paragraph: &mut bool,
+        ) where
             F: Fn(&'a AstNode<'a>, &mut String, &mut bool),
         {
             f(node, description, is_paragraph);
@@ -784,8 +795,9 @@ impl<'a> Generator<'a> {
             }
         }
 
-        iter_nodes(root, &|node, description, is_paragraph| {
-            match &mut node.data.borrow_mut().value {
+        iter_nodes(
+            root,
+            &|node, description, is_paragraph| match &mut node.data.borrow_mut().value {
                 &mut NodeValue::Paragraph => {
                     *is_paragraph = true;
                 }
@@ -801,15 +813,17 @@ impl<'a> Generator<'a> {
                         if description.ends_with('.') {
                             description.push_str(" ");
                         }
-                        description.push_str(text.as_str());
+                        description.push_str(text);
                     }
                     return;
                 }
                 _ => {
                     *is_paragraph = false;
                 }
-            }
-        }, &mut description, &mut is_paragraph);
+            },
+            &mut description,
+            &mut is_paragraph,
+        );
 
         description
     }
