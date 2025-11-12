@@ -74,6 +74,11 @@
             <span class="tag is-dark">Status</span>{% if status == "done" %}<span class="tag is-success">{{ status }}</span>{% elif status == "abandoned" %}<span class="tag is-danger">{{ status }}</span>{% else %}<span class="tag is-primary">{{ status }}</span>{% endif %}
         </div>
     {% endif %}
+    {% if created %}
+    <div class="tags has-addons">
+        <span class="tag is-dark">Created: </span><span class="tag">{{ created }}</span>
+    </div>
+    {% endif %}
     {% if updated %}
     <div class="tags has-addons">
         <span class="tag is-dark">Updated: </span><span class="tag is-primary">{{ updated }}</span>

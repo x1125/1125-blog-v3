@@ -701,6 +701,7 @@ impl<'a> Generator<'a> {
         // write to original Post if available
         let mut title: Option<String> = None;
         let mut description: Option<String> = None;
+        let mut created: Option<String> = None;
         match post {
             Some(post) => {
                 post.headline_ids = headline_ids;
@@ -710,6 +711,10 @@ impl<'a> Generator<'a> {
                 if !STATIC_PAGES.contains(&post.filename.as_str()) {
                     description =
                         Some(self.get_description(file_content.as_str(), title_str.as_str()));
+                }
+
+                if post.created.len() > 0 {
+                    created = Some(post.created.clone());
                 }
             }
             None => {}
@@ -754,6 +759,9 @@ impl<'a> Generator<'a> {
         }
         if description.is_some() {
             context.insert("description", &description.unwrap());
+        }
+        if created.is_some() {
+            context.insert("created", &created.unwrap());
         }
         if extra_context.is_some() {
             context.extend(extra_context.unwrap());
