@@ -20,6 +20,7 @@ use crate::blog::ctrl_generate::ctrl_generate;
 use crate::blog::ctrl_get_changes::ctrl_get_changes;
 use crate::blog::ctrl_get_files::ctrl_get_files;
 use crate::blog::ctrl_get_preview::ctrl_get_preview;
+use crate::blog::ctrl_get_attributes::ctrl_get_attributes;
 use crate::blog::ctrl_new_file::ctrl_new_file;
 use crate::blog::ctrl_new_folder::ctrl_new_folder;
 use crate::blog::ctrl_pull_remote::ctrl_pull_remote;
@@ -67,7 +68,7 @@ async fn main() {
         match run_web_server(config) {
             Ok(server) => {
                 _ = server.await;
-            },
+            }
             Err(e) => panic!("Unable to start webserver: {}", e),
         }
     }
@@ -88,6 +89,7 @@ fn run_web_server(config: Config) -> Result<Server, std::io::Error> {
         App::new()
             .app_data(runtime_data.clone())
             .route("/api/files", web::get().to(ctrl_get_files))
+            .route("/api/attributes", web::get().to(ctrl_get_attributes))
             .route("/api/changes", web::get().to(ctrl_get_changes))
             .route("/api/preview", web::post().to(ctrl_get_preview))
             .route("/api/file/new", web::post().to(ctrl_new_file))
@@ -116,8 +118,7 @@ fn run_web_server(config: Config) -> Result<Server, std::io::Error> {
 
     if ssl_cert_path.len() > 0 && ssl_key_path.len() > 0 {
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
-        builder
-            .set_private_key_file(ssl_key_path, SslFiletype::PEM)?;
+        builder.set_private_key_file(ssl_key_path, SslFiletype::PEM)?;
         builder.set_certificate_chain_file(ssl_cert_path)?;
 
         Ok(server.bind_openssl(listen, builder)?.run())

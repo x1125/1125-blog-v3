@@ -320,6 +320,79 @@ impl<'a> Generator<'a> {
         Ok(())
     }
 
+    pub fn get_attributes(&mut self) -> Result<HashMap<String, Vec<String>>, String> {
+        let files = find_files(&self.input_path, Some(self.filter.as_str()));
+
+        let posts: &mut Vec<Post> = &mut vec![];
+
+        for file in files.into_iter() {
+            // read file as string
+            let f = fs::read_to_string(format!(
+                "{}/{}",
+                self.input_path.to_string_lossy(),
+                file.name.clone()
+            ));
+            if f.is_err() {
+                return Err(format!(
+                    "unable to read file {}: {}",
+                    file.name,
+                    f.err().unwrap()
+                ));
+            }
+            let file_content = &mut f.unwrap();
+
+            let post = match self.new_post(file.name.clone(), file_content) {
+                Ok(post) => post,
+                Err(e) => {
+                    return Err(format!(
+                        "unable to generate post {}: {}",
+                        file.name,
+                        e.to_string()
+                    ));
+                }
+            };
+
+            // custom posts can be ignored
+            if CUSTOM_POSTS.contains(&file.name.as_str()) {
+                continue;
+            }
+
+            posts.push(post);
+        }
+
+        let filtered_posts: &mut Vec<Post> = &mut vec![];
+        for post in posts.iter() {
+            if post.clone().created.len() > 0 {
+                filtered_posts.push(post.clone());
+            }
+        }
+
+        let mut attributes: HashMap<String, Vec<String>> = HashMap::new();
+        for attribute in KNOWN_ATTRIBUTES {
+            attributes.insert(String::from(*attribute), vec![]);
+        }
+
+        let mut status: Vec<String> = vec![];
+        let mut tags: Vec<String> = vec![];
+        for post in filtered_posts.iter() {
+            if let Some(post_status) = post.status.clone() {
+                if !status.contains(&post_status) {
+                    status.push(post_status.to_string());
+                }
+            };
+
+            for post_tag in post.tags.iter() {
+                if !tags.contains(post_tag) {
+                    tags.push(String::from(post_tag));
+                }
+            }
+        }
+        attributes.get_mut("status").unwrap().append(&mut status);
+        attributes.get_mut("tag").unwrap().append(&mut tags);
+
+        Ok(attributes)
+    }
+
     pub fn generate_preview(&mut self, content: &mut String) -> Result<String, String> {
         let mut post = match self.new_post(String::from("preview"), content) {
             Ok(post) => post,

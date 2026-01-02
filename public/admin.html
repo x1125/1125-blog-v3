@@ -34,14 +34,15 @@
 
         #main-container div:last-child {
             flex-grow: 8;
+            padding-right: 10px;
         }
 
         #textarea {
-            min-height: 280px;
+            min-height: 360px;
         }
 
         #preview {
-            width: Calc(100% - 80px);
+            width: 100%;
             min-height: 600px;
         }
 
@@ -87,7 +88,7 @@
                             id="upload-button">Upload</button>
                     <button onclick="renameContent()">Rename</button>
                     <button onclick="deleteContent()">Delete</button>
-                    <input type="file" class="is-hidden" id="file-upload">
+                    <input type="file" class="is-hidden" id="file-upload" multiple>
                 </span>
         <hr>
         <div id="editor-content"></div>
@@ -109,6 +110,18 @@
             } else {
                 document.getElementById('upload-button').classList.remove('is-hidden');
             }
+
+            document.querySelectorAll('ul[data-parent]').forEach(el => {
+                el.classList.add('is-hidden');
+            });
+
+            let baseFilename = file.split('/')[0];
+            if (!baseFilename.endsWith('.md')) {
+                baseFilename += '.md';
+            }
+            document.querySelectorAll('ul[data-parent="' + baseFilename + '"]').forEach(el => {
+                el.classList.remove('is-hidden');
+            });
         };
 
         const unsetCurrentFilename = () => {
@@ -155,7 +168,7 @@
         const apiRequest = (path, options = {}, expectCode = 200) => {
             if (retryCount >= 3) {
                 console.error('retry count exceeded');
-                return;
+                throw new Error('retry count exceeded');
             }
 
             if (!options.hasOwnProperty('headers')) {
@@ -177,28 +190,17 @@
 
                     if (res.status !== expectCode) {
                         retryCount++;
-                        httpUnexpected(res);
-                        return;
+                        return res.text()
+                            .then((data) => {
+                                throw new Error(`Unexpected response: ${res.status}: ${data}`);
+                            }).catch(() => {
+                                throw new Error(`Unexpected response: ${res.status} - ${res.statusText}`);
+                            });
                     }
 
                     retryCount = 0;
                     return res;
-                })
-                .catch(error => console.error(error.message));
-        };
-
-        const httpError = (e) => {
-            console.log(e);
-        };
-
-        const httpUnexpected = (r) => {
-            console.log(r);
-            r.text()
-                .then((data) => {
-                    alert(`Unexpected response: ${r.status}: ${data}`);
-                }).catch(() => {
-                alert(`Unexpected response: ${r.status} - ${r.statusText}`);
-            });
+                });
         };
 
         window['generatePreview'] = () => {
@@ -235,7 +237,7 @@
                 }, 204).then((response) => {
                     location.hash = `file=${file}`;
                     location.reload();
-                }).catch((err) => httpError(err))
+                }).catch((err) => alert(err))
             }
         };
 
@@ -248,7 +250,7 @@
                 }, 204).then((response) => {
                     location.hash = `file=${folder}`;
                     location.reload();
-                }).catch((err) => httpError(err))
+                }).catch((err) => alert(err))
             }
         };
 
@@ -271,9 +273,10 @@
                 method: 'POST',
                 body: JSON.stringify({'file': file, 'content': content}),
             }, 204).then((response) => {
+                document.getElementById('last-save').innerText = ` (last saved ${new Date().toISOString()})`;
                 }
             ).catch(
-                (err) => httpError(err)
+                (err) => alert(err)
             ).finally(() => {
                 saveButton.innerText = 'Save';
                 saveButton.removeAttribute('disabled');
@@ -283,32 +286,38 @@
         const uploadContent = (e) => {
             const tmp = getCurrentFilename().split('.');
             const targetDir = tmp.slice(0, tmp.length - 1).join('.');
-            const uploadFile = document.getElementById('file-upload').files[0];
-            const targetFile = targetDir + '/' + uploadFile.name;
             const uploadButton = document.getElementById('upload-button');
             uploadButton.innerText = 'Uploading...';
             uploadButton.setAttribute('disabled', 'disabled');
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                apiRequest(`${BASE}/upload`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        'content': btoa(e.target.result),
-                        'name': targetFile,
-                        'size': uploadFile.size,
-                    }, 201),
-                }).then((response) => {
-                    location.hash = `file=${targetFile}`;
-                    location.reload();
-                }).catch(
-                    (err) => httpError(err)
-                ).finally(() => {
-                    uploadButton.innerText = 'Upload';
-                    uploadButton.removeAttribute('disabled');
-                });
-            };
-            reader.readAsBinaryString(e.target.files[0])
+            const uploadCount = e.target.files.length;
+            let successfulUploads = 0;
+            [].forEach.call(e.target.files, function (file) {
+                const targetFile = targetDir + '/' + file.name;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    apiRequest(`${BASE}/upload`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            'content': btoa(String.fromCharCode(...new Uint8Array(e.target.result))),
+                            'name': targetFile,
+                            'size': file.size,
+                        })
+                    }, 201).then((response) => {
+                        successfulUploads += 1;
+                    }).catch(
+                        (err) => alert(err)
+                    ).finally(() => {
+                        if (successfulUploads === uploadCount) {
+                            location.reload();
+                        }
+                        uploadButton.innerText = 'Upload';
+                        uploadButton.removeAttribute('disabled');
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            });
         };
 
         window['renameContent'] = () => {
@@ -321,7 +330,7 @@
                 }, 204).then((response) => {
                     location.hash = location.hash.replace(file, newFile);
                     location.reload();
-                }).catch((err) => httpError(err))
+                }).catch((err) => alert(err))
             }
         };
 
@@ -332,9 +341,17 @@
                     method: 'POST',
                     body: JSON.stringify({'file': file}),
                 }, 204).then((response) => {
-                    location.hash = '';
+                    if (file.indexOf('/' !== -1)) {
+                        let baseFilename = file.split('/')[0];
+                        if (!baseFilename.endsWith('.md')) {
+                            baseFilename += '.md';
+                        }
+                        location.hash = `file=${baseFilename}`;
+                    } else {
+                        location.hash = '';
+                    }
                     location.reload();
-                }).catch((err) => httpError(err))
+                }).catch((err) => alert(err))
             }
         };
 
@@ -353,7 +370,7 @@
                 }, 204).then((response) => {
                     location.hash = '#staging';
                     location.reload();
-                }).catch((err) => httpError(err))
+                }).catch((err) => alert(err))
             }
         };
 
@@ -366,7 +383,7 @@
                 return response.text();
             }).then((data) => {
                 document.getElementById('change-files').innerHTML = `<div class="diff-viewer"><pre>${data}</pre></div>`;
-            }).catch((err) => httpError(err))
+            }).catch((err) => alert(err))
         };
 
         window['pushRemote'] = () => {
@@ -376,7 +393,7 @@
                 method: 'POST',
             }, 204).then((response) => {
                 document.getElementById('change-files').innerHTML = 'Done!';
-            }).catch((err) => httpError(err))
+            }).catch((err) => alert(err))
         };
 
         window['pullRemote'] = () => {
@@ -388,7 +405,23 @@
                 return response.json();
             }).then((response) => {
                 document.getElementById('change-files').innerHTML = `Success: ${response.message}`;
-            }).catch((err) => httpError(err))
+            }).catch((err) => alert(err))
+        };
+
+        const loadAttributes = () => {
+            const attributeOverview = document.getElementById('attribute-overview');
+            apiRequest(`${BASE}/attributes`, {}, 200).then((response) => {
+                return response.json();
+            }).then((attributes) => {
+                attributeOverview.innerHTML += '<b>Attributes:</b>';
+                Object.keys(attributes).forEach(key => {
+                    attributeOverview.innerHTML += `&nbsp;[${key}`;
+                    if (attributes[key].length > 0) {
+                        attributeOverview.innerHTML += `:${attributes[key].join(',')}`;
+                    }
+                    attributeOverview.innerHTML += ']';
+                });
+            }).catch((err) => alert(err))
         };
 
         const viewContent = (file, is_dir) => {
@@ -409,8 +442,12 @@
                 target.innerHTML = `
   <div>
     <textarea id="textarea">Loading...</textarea>
+    <div id="attribute-overview"></div>
     <br>
-    <button id="save-button" onclick="saveContent()">Save</button>
+    <div>
+        <button id="save-button" onclick="saveContent()">Save</button>
+        <span id="last-save"></span>
+    </div>
 </div>
 
 <hr />
@@ -429,6 +466,8 @@
                     textarea.value = 'Unable to load: ' + err;
                     textarea.setAttribute('disabled', 'disabled');
                 });
+
+                loadAttributes();
             }
         };
 
@@ -440,7 +479,7 @@
                 body: JSON.stringify({'file': file, 'stage': stage}),
             }, 204).then((response) => {
                 viewStaging();
-            }).catch((err) => httpError(err))
+            }).catch((err) => alert(err))
         }
 
         const revert = (file) => {
@@ -451,7 +490,7 @@
                 body: JSON.stringify({'file': file}),
             }, 204).then((response) => {
                 viewStaging();
-            }).catch((err) => httpError(err))
+            }).catch((err) => alert(err))
         }
 
         const colorize = (content) => {
@@ -540,7 +579,7 @@
 </td>
 </tr>`;
                 });
-            }).catch((err) => httpError(err));
+            }).catch((err) => alert(err));
         };
 
         const router = () => {
@@ -550,6 +589,7 @@
 
             if (params.file) {
                 viewContent(params.file, params['dir']);
+                window.scrollTo(0, 0);
             }
 
             if (params.stage) {
@@ -621,13 +661,15 @@
                 li.append(li_href);
                 if (entry['assets'].length > 0) {
                     const asset_list = document.createElement('ul');
+                    asset_list.setAttribute('data-parent', entry['name']);
+                    asset_list.classList.add('is-hidden');
                     entry['assets']
                         .filter(elem => elem.indexOf('/preview/') === -1)
                         .forEach((asset) => {
                             const asset_li = document.createElement('li');
                             const asset_href = document.createElement('a');
                             asset_href.innerText = asset.replace(entry['name'].replace('.md', ''), '');
-                            asset_href.setAttribute('href', `#file=${asset}`);
+                            asset_href.setAttribute('href', `#file=${encodeURIComponent(asset)}`);
                             asset_li.append(asset_href);
                             asset_list.append(asset_li);
                         });
@@ -637,7 +679,7 @@
             });
 
             router();
-        }).catch((err) => httpError(err));
+        }).catch((err) => alert(err));
 
     }, {once: true});
 </script>

@@ -6,6 +6,7 @@ pub mod ctrl_generate;
 pub mod ctrl_get_changes;
 pub mod ctrl_get_files;
 pub mod ctrl_get_preview;
+pub mod ctrl_get_attributes;
 pub mod ctrl_new_file;
 pub mod ctrl_new_folder;
 pub mod ctrl_pull_remote;
