@@ -1,22 +1,24 @@
 use crate::blog::config::Config;
-use crate::blog::error::http_error;
+use actix_web::{web, HttpResponse, Responder};
+use serde::Deserialize;
 use std::fs;
 use std::path::Path;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
 
-#[derive(Debug, Deserialize)]
-struct DeleteFile {
+#[derive(Deserialize)]
+pub struct DeleteFile {
     file: String,
 }
 
-pub async fn ctrl_delete(mut req: Request<Config>) -> tide::Result {
-    let DeleteFile { file } = req.body_json().await?;
+pub async fn ctrl_delete(
+    runtime: web::Data<Config>,
+    delete_file: web::Json<DeleteFile>,
+) -> actix_web::Result<impl Responder> {
+    let file = delete_file.file.clone();
 
-    let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
+    let path_str = format!("{}/{}", runtime.get_input_path().to_string_lossy(), file);
     let path = Path::new(path_str.as_str());
     if !path.exists() {
-        return Ok(Response::builder(StatusCode::NotFound).build());
+        return Err(actix_web::error::ErrorNotFound("file not found"));
     }
 
     if let Err(e) = if path.is_dir() {
@@ -24,8 +26,11 @@ pub async fn ctrl_delete(mut req: Request<Config>) -> tide::Result {
     } else {
         fs::remove_file(path)
     } {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to remove: {}", e)));
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to remove: {}",
+            e
+        )));
     }
 
-    Ok(Response::builder(StatusCode::NoContent).build())
+    Ok(HttpResponse::NoContent().finish())
 }

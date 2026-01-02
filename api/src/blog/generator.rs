@@ -1,5 +1,4 @@
 use crate::blog::config::HIGHLIGHT_THEME;
-use crate::blog::error::GeneratorError;
 use crate::blog::utils::find_files;
 use crate::Config;
 use bytebuffer::ByteBuffer;
@@ -147,7 +146,7 @@ impl<'a> Generator<'a> {
         String::new()
     }
 
-    pub fn generate(&mut self) -> Result<(), GeneratorError> {
+    pub fn generate(&mut self) -> Result<(), String> {
         self.log_time(Some("Starting"), true);
 
         // clear old files
@@ -170,11 +169,11 @@ impl<'a> Generator<'a> {
                 file.name.clone()
             ));
             if f.is_err() {
-                return Err(GeneratorError::new(format!(
+                return Err(format!(
                     "unable to read file {}: {}",
                     file.name,
                     f.err().unwrap()
-                )));
+                ));
             }
             let file_content = &mut f.unwrap();
 
@@ -184,11 +183,11 @@ impl<'a> Generator<'a> {
             let mut post = match self.new_post(file.name.clone(), file_content) {
                 Ok(post) => post,
                 Err(e) => {
-                    return Err(GeneratorError::new(format!(
+                    return Err(format!(
                         "unable to generate post {}: {}",
                         file.name,
                         e.to_string()
-                    )));
+                    ));
                 }
             };
             self.log_time(None, false);
@@ -242,14 +241,12 @@ impl<'a> Generator<'a> {
             context.insert("posts", filtered_posts);
             let recent_posts_html = match self.tera.render("recent-posts.html", &context) {
                 Ok(html) => html,
-                Err(e) => return Err(GeneratorError::new(e.to_string())),
+                Err(e) => return Err(e.to_string()),
             };
             let html: String = match custom_post_content.get("recent-posts.md") {
                 Some(html) => html.to_owned(),
                 None => {
-                    return Err(GeneratorError::new(String::from(
-                        "custom_post_content not found",
-                    )));
+                    return Err(String::from("custom_post_content not found"));
                 }
             };
 
@@ -280,15 +277,13 @@ impl<'a> Generator<'a> {
             context.insert("tag_map", &tag_map);
             let overview_html = match self.tera.render("overview.html", &context) {
                 Ok(html) => html,
-                Err(e) => return Err(GeneratorError::new(e.to_string())),
+                Err(e) => return Err(e.to_string()),
             };
             context.insert("posts", filtered_posts);
             let html: String = match custom_post_content.get("overview.md") {
                 Some(html) => html.to_owned(),
                 None => {
-                    return Err(GeneratorError::new(String::from(
-                        "custom_post_content not found",
-                    )));
+                    return Err(String::from("custom_post_content not found"));
                 }
             };
 
@@ -325,14 +320,14 @@ impl<'a> Generator<'a> {
         Ok(())
     }
 
-    pub fn generate_preview(&mut self, content: &mut String) -> Result<String, GeneratorError> {
+    pub fn generate_preview(&mut self, content: &mut String) -> Result<String, String> {
         let mut post = match self.new_post(String::from("preview"), content) {
             Ok(post) => post,
             Err(e) => {
-                return Err(GeneratorError::new(format!(
+                return Err(format!(
                     "unable to generate post preview: {}",
                     e.to_string()
-                )));
+                ));
             }
         };
 
@@ -372,7 +367,7 @@ impl<'a> Generator<'a> {
         }
     }
 
-    pub fn generate_preview_images(&self, posts: &Vec<Post>) -> Result<(), GeneratorError> {
+    pub fn generate_preview_images(&self, posts: &Vec<Post>) -> Result<(), String> {
         for post in posts {
             for preview_image in post.preview_images.iter() {
                 let mut output_path = PathBuf::from(self.output_path.clone());
@@ -381,10 +376,10 @@ impl<'a> Generator<'a> {
                     let output_base_path = output_path.parent().unwrap();
                     if !output_base_path.exists() {
                         if let Err(_) = create_dir(output_base_path) {
-                            return Err(GeneratorError::new(format!(
+                            return Err(format!(
                                 "Unable to create output directory: {}",
                                 output_base_path.to_string_lossy()
-                            )));
+                            ));
                         }
                     }
                     let mut input_path = PathBuf::from(self.output_path.clone());
@@ -409,7 +404,7 @@ impl<'a> Generator<'a> {
         Ok(())
     }
 
-    pub fn remove_exif_data(&self, posts: &Vec<Post>) -> Result<(), GeneratorError> {
+    pub fn remove_exif_data(&self, posts: &Vec<Post>) -> Result<(), String> {
         for post in posts {
             for image in post.images.iter() {
                 let mut image_path = PathBuf::from(self.output_path.clone());
@@ -418,11 +413,11 @@ impl<'a> Generator<'a> {
                 let meta: Metadata = match Metadata::new_from_path(&image_path) {
                     Ok(meta) => meta,
                     Err(e) => {
-                        return Err(GeneratorError::new(format!(
+                        return Err(format!(
                             "Unable to get metadata for {}: {}",
                             image_path.to_string_lossy(),
                             e.to_string()
-                        )));
+                        ));
                     }
                 };
                 if meta.has_exif() {
@@ -430,10 +425,7 @@ impl<'a> Generator<'a> {
                     match meta.save_to_file(&image_path) {
                         Ok(_) => {}
                         Err(e) => {
-                            return Err(GeneratorError::new(format!(
-                                "Unable to clear Exif data: {}",
-                                e.to_string()
-                            )));
+                            return Err(format!("Unable to clear Exif data: {}", e.to_string()));
                         }
                     }
                 }
@@ -442,7 +434,7 @@ impl<'a> Generator<'a> {
         Ok(())
     }
 
-    fn verify_links(&self, posts: &Vec<Post>) -> Result<(), GeneratorError> {
+    fn verify_links(&self, posts: &Vec<Post>) -> Result<(), String> {
         for post in posts {
             'linkLoop: for link in post.links.iter() {
                 // skip external links
@@ -481,19 +473,16 @@ impl<'a> Generator<'a> {
                                         continue 'linkLoop;
                                     }
                                 }
-                                return Err(GeneratorError::new(format!(
+                                return Err(format!(
                                     "link not found: {} (unknown headline_id)",
                                     link
-                                )));
+                                ));
                             }
                             None => continue,
                         };
                     }
                 }
-                return Err(GeneratorError::new(format!(
-                    "link not found: {} (unknown file)",
-                    link
-                )));
+                return Err(format!("link not found: {} (unknown file)", link));
             }
         }
         Ok(())
@@ -503,7 +492,7 @@ impl<'a> Generator<'a> {
         &mut self,
         posts: &Vec<Post>,
         tag_list: &Vec<String>,
-    ) -> Result<(), GeneratorError> {
+    ) -> Result<(), String> {
         let files = find_files(&self.input_path, None);
 
         let filtered_files: &mut Vec<String> = &mut vec![];
@@ -626,7 +615,7 @@ impl<'a> Generator<'a> {
         html_append: Option<&String>,
         extra_context: Option<Context>,
         post: Option<&mut Post>,
-    ) -> Result<String, GeneratorError> {
+    ) -> Result<String, String> {
         // convert to markdown
         self.log_time(Some("Rendering markdown"), false);
         let mut md = markdown_to_html_with_plugins(
@@ -646,7 +635,7 @@ impl<'a> Generator<'a> {
         if self.image_regex.is_none() {
             self.image_regex = match Regex::new(r#"(?m)<img src="(.+?)" alt="(.+?)" />"#) {
                 Ok(re) => Some(re),
-                Err(e) => return Err(GeneratorError::new(format!("Unable to build regex: {}", e))),
+                Err(e) => return Err(format!("Unable to build regex: {}", e)),
             };
         }
         let re = self.image_regex.clone().unwrap();
@@ -663,9 +652,7 @@ impl<'a> Generator<'a> {
             let start_pos = match md.find(&from) {
                 Some(start_pos) => start_pos,
                 None => {
-                    return Err(GeneratorError::new(String::from(
-                        "Image starting position not found",
-                    )));
+                    return Err(String::from("Image starting position not found"));
                 }
             };
             md.replace_range(start_pos..start_pos + from.len(), to.as_str());
@@ -677,7 +664,7 @@ impl<'a> Generator<'a> {
         if self.headline_regex.is_none() {
             self.headline_regex = match Regex::new(r"(?m)^<h([1-6])>(.+?)</h([1-6])>$") {
                 Ok(re) => Some(re),
-                Err(e) => return Err(GeneratorError::new(format!("Unable to build regex: {}", e))),
+                Err(e) => return Err(format!("Unable to build regex: {}", e)),
             };
         }
         let re = self.headline_regex.clone().unwrap();
@@ -685,9 +672,7 @@ impl<'a> Generator<'a> {
         let mut headline_ids: Vec<String> = vec![];
         for cap in re.captures_iter(md.as_str()) {
             if &cap[1] != &cap[3] {
-                return Err(GeneratorError::new(String::from(
-                    "Unmatching headline tags found",
-                )));
+                return Err(String::from("Unmatching headline tags found"));
             }
             let id = self.title2id(cap[2].to_string());
             headline_ids.push(id.clone());
@@ -733,9 +718,7 @@ impl<'a> Generator<'a> {
             let start_pos = match md.find(&from) {
                 Some(start_pos) => start_pos,
                 None => {
-                    return Err(GeneratorError::new(String::from(
-                        "Headline starting position not found",
-                    )));
+                    return Err(String::from("Headline starting position not found"));
                 }
             };
             md.replace_range(start_pos..start_pos + from.len(), to.as_str());
@@ -768,7 +751,7 @@ impl<'a> Generator<'a> {
         }
         let html = match self.tera.render("post.html", &context) {
             Ok(html) => html,
-            Err(e) => return Err(GeneratorError::new(e.to_string())),
+            Err(e) => return Err(e.to_string()),
         };
         self.log_time(None, false);
 
@@ -782,7 +765,7 @@ impl<'a> Generator<'a> {
         html_append: Option<&String>,
         extra_context: Option<Context>,
         post: Option<&mut Post>,
-    ) -> Result<(), GeneratorError> {
+    ) -> Result<(), String> {
         let html = self.render(file_content, html_append, extra_context, post)?;
 
         self.log_time(Some("Writing HTML"), false);
@@ -790,11 +773,11 @@ impl<'a> Generator<'a> {
         match fs::write(target_filename.clone(), html) {
             Ok(_) => {}
             Err(e) => {
-                return Err(GeneratorError::new(format!(
+                return Err(format!(
                     "unable to write file {}: {}",
                     target_filename.to_string_lossy(),
                     e.to_string()
-                )));
+                ));
             }
         }
         self.log_time(None, false);
@@ -855,11 +838,7 @@ impl<'a> Generator<'a> {
         description
     }
 
-    pub fn new_post(
-        &self,
-        filename: String,
-        file_content: &mut String,
-    ) -> Result<Post, GeneratorError> {
+    pub fn new_post(&self, filename: String, file_content: &mut String) -> Result<Post, String> {
         let mut prev_char = '\0';
         let mut prev_pos: usize = 0;
 
@@ -931,10 +910,10 @@ impl<'a> Generator<'a> {
                 }
 
                 if code_open_count > 3 {
-                    return Err(GeneratorError::new(format!(
+                    return Err(format!(
                         "too many code block ticks in {} pos {}",
                         filename, pos
-                    )));
+                    ));
                 } else if code_open_count == 0 {
                     is_multiline_code = false;
                 }
@@ -955,10 +934,7 @@ impl<'a> Generator<'a> {
             // register opening square bracket
             if char == '[' {
                 if is_tag_open {
-                    return Err(GeneratorError::new(format!(
-                        "tag opened twice in {} pos {}",
-                        filename, pos
-                    )));
+                    return Err(format!("tag opened twice in {} pos {}", filename, pos));
                 }
                 is_tag_open = true;
                 tag_open_pos = pos;
@@ -984,10 +960,7 @@ impl<'a> Generator<'a> {
                 // if round bracket opens, it's a link or image
                 if char == '(' {
                     if is_link_open {
-                        return Err(GeneratorError::new(format!(
-                            "link opened twice in {} pos {}",
-                            filename, pos
-                        )));
+                        return Err(format!("link opened twice in {} pos {}", filename, pos));
                     }
                     is_link_open = true;
                     continue;
@@ -1066,10 +1039,7 @@ impl<'a> Generator<'a> {
         }
 
         if prev_char == ']' {
-            return Err(GeneratorError::new(format!(
-                "possible late tag closing in {}",
-                filename
-            )));
+            return Err(format!("possible late tag closing in {}", filename));
         }
 
         // catch late link closings
@@ -1088,10 +1058,7 @@ impl<'a> Generator<'a> {
 
         // late sanity check
         if code_open_count != 0 {
-            return Err(GeneratorError::new(format!(
-                "code_open_count is not 0 for {}",
-                filename
-            )));
+            return Err(format!("code_open_count is not 0 for {}", filename));
         }
 
         let mut post = Post {
@@ -1115,10 +1082,10 @@ impl<'a> Generator<'a> {
                     "tag" => post.tags.push(tag.value.clone().unwrap()),
                     "status" => post.status = Some(tag.value.clone().unwrap()),
                     _ => {
-                        return Err(GeneratorError::new(format!(
+                        return Err(format!(
                             "found known attribute without handler '{}' in {}",
                             tag.name, filename
-                        )));
+                        ));
                     }
                 }
 
@@ -1171,10 +1138,7 @@ impl<'a> Generator<'a> {
             } else if tag.link.is_some() {
                 post.links.push(tag.link.clone().unwrap());
             } else if tag.link.is_none() && tag.value.is_some() {
-                return Err(GeneratorError::new(format!(
-                    "unknown attribute '{}' in {}",
-                    tag.name, filename
-                )));
+                return Err(format!("unknown attribute '{}' in {}", tag.name, filename));
             }
         }
 
@@ -1207,7 +1171,7 @@ fn search(haystack: &Vec<String>, needle: &String) -> Option<usize> {
     None
 }
 
-pub fn generate_all(config: &Config, tera: &Tera) -> Result<(), GeneratorError> {
+pub fn generate_all(config: &Config, tera: &Tera) -> Result<(), String> {
     generate_files(config, tera, None)
 }
 
@@ -1215,7 +1179,7 @@ pub fn generate_files(
     config: &Config,
     tera: &Tera,
     name_arg: Option<&String>,
-) -> Result<(), GeneratorError> {
+) -> Result<(), String> {
     let adapter = SyntectAdapter::new(Some(HIGHLIGHT_THEME));
     let mut generator = Generator::new(
         tera,

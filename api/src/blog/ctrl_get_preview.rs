@@ -1,61 +1,74 @@
 use crate::blog::config::{Config, HIGHLIGHT_THEME};
-use crate::blog::error::http_error;
 use crate::blog::generator::{Generator, Post};
+use actix_web::http::header::ContentType;
+use actix_web::{web, HttpResponse, Responder};
 use comrak::plugins::syntect::SyntectAdapter;
+use serde::Deserialize;
 use tera::Tera;
-use tide::http::mime;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
 
-#[derive(Debug, Deserialize)]
-struct PreviewData {
+#[derive(Deserialize)]
+pub struct PreviewData {
     content: String,
 }
 
-pub async fn ctrl_get_preview(mut req: Request<Config>) -> tide::Result {
-    let PreviewData { content } = req.body_json().await?;
-
-    let tera = match Tera::new(format!("{}/templates/*.html", req.state().working_path).as_str()) {
+pub async fn ctrl_get_preview(
+    runtime: web::Data<Config>,
+    preview_data: web::Json<PreviewData>,
+) -> actix_web::Result<impl Responder> {
+    let tera = match Tera::new(format!("{}/templates/*.html", runtime.working_path).as_str()) {
         Ok(t) => t,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate config: {:?}", e)));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "unable to generate config: {:?}",
+                e
+            )))
         }
     };
 
     let adapter = SyntectAdapter::new(Some(HIGHLIGHT_THEME));
     let mut generator = Generator::new(
         &tera,
-        req.state().get_input_path(),
-        req.state().get_output_path(),
+        runtime.get_input_path(),
+        runtime.get_output_path(),
         Some(&adapter),
     );
-    let mut content_mut = content.clone();
+    let mut content_mut = preview_data.content.clone();
 
     let post = match generator.new_post(String::from("preview"), &mut content_mut) {
         Ok(post) => post,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!(
-                "unable to generate post preview: {}", e)));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "unable to generate post preview: {}",
+                e
+            )))
         }
     };
 
     let html = match generator.generate_preview(&mut content_mut) {
         Ok(html) => html,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate preview: {}", e.message)));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "unable to generate preview: {}",
+                e
+            )))
         }
     };
 
     let posts: Vec<Post> = vec![post];
     if let Err(e) = generator.generate_preview_images(&posts) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to generate preview images: {}", e.message)));
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to generate preview images: {}",
+            e
+        )));
     }
     if let Err(e) = generator.remove_exif_data(&posts) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to remove exif data: {}", e.message)));
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to remove exif data: {}",
+            e
+        )));
     }
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(html)
-        .content_type(mime::HTML)
-        .build())
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body(html))
 }

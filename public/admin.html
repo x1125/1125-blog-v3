@@ -163,6 +163,10 @@
             }
             options.headers['Authorization'] = `Token ${password}`;
 
+            if (options.hasOwnProperty('body')) {
+                options.headers['Content-Type'] = 'application/json';
+            }
+
             return fetch(path, options)
                 .then(res => {
                     if (res.status === 401) {

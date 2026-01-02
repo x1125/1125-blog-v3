@@ -1,27 +1,34 @@
 use crate::blog::config::Config;
-use crate::blog::error::http_error;
+use actix_web::{web, HttpResponse, Responder};
+use serde::Deserialize;
 use std::fs;
 use std::path::Path;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
 
-#[derive(Debug, Deserialize)]
-struct NewFile {
+#[derive(Deserialize)]
+pub struct NewFile {
     file: String,
 }
 
-pub async fn ctrl_new_file(mut req: Request<Config>) -> tide::Result {
-    let NewFile { file } = req.body_json().await?;
-
-    let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
+pub async fn ctrl_new_file(
+    runtime: web::Data<Config>,
+    new_file: web::Json<NewFile>,
+) -> actix_web::Result<impl Responder> {
+    let path_str = format!(
+        "{}/{}",
+        runtime.get_input_path().to_string_lossy(),
+        new_file.file.clone()
+    );
     let path = Path::new(path_str.as_str());
     if path.exists() {
-        return Ok(Response::builder(StatusCode::Conflict).build());
+        return Err(actix_web::error::ErrorConflict("file already exists"));
     }
 
     if let Err(e) = fs::write(path, "") {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to write file: {}", e)));
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to write file: {}",
+            e
+        )));
     }
 
-    Ok(Response::builder(StatusCode::NoContent).build())
+    Ok(HttpResponse::NoContent().finish())
 }

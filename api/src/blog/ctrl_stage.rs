@@ -1,36 +1,45 @@
 use crate::blog::config::{Config, DEFAULT_BRANCH};
-use crate::blog::error::http_error;
+use actix_web::{web, HttpResponse, Responder};
 use git2::{IndexAddOption, Repository};
+use serde::Deserialize;
 use std::path::Path;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
 
-#[derive(Debug, Deserialize)]
-struct StageFile {
+#[derive(Deserialize)]
+pub struct StageFile {
     file: String,
     stage: bool,
 }
 
-pub async fn ctrl_stage(mut req: Request<Config>) -> tide::Result {
-    let StageFile { file, stage } = req.body_json().await?;
+pub async fn ctrl_stage(
+    runtime: web::Data<Config>,
+    stage_file: web::Json<StageFile>,
+) -> actix_web::Result<impl Responder> {
+    let file = stage_file.file.clone();
+    let stage = stage_file.stage;
 
-    let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), file);
+    let path_str = format!("{}/{}", runtime.get_input_path().to_string_lossy(), file);
     let path = Path::new(path_str.as_str());
     if !path.exists() && file != "*" {
-        return Ok(Response::builder(StatusCode::NotFound).build());
+        return Err(actix_web::error::ErrorNotFound("file not found"));
     }
 
-    let repo_path = req.state().get_input_path();
+    let repo_path = runtime.get_input_path();
     let repo = match Repository::open(repo_path) {
         Ok(repo) => repo,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e.message())));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "failed to open: {}",
+                e.message()
+            )));
         }
     };
     let mut index = match repo.index() {
         Ok(index) => index,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("failed to get index: {}", e.message())));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "failed to get index: {}",
+                e.message()
+            )));
         }
     };
 
@@ -38,13 +47,22 @@ pub async fn ctrl_stage(mut req: Request<Config>) -> tide::Result {
         match index.add_all([&file].iter(), IndexAddOption::DEFAULT, None) {
             Ok(()) => {}
             Err(e) => {
-                return Ok(http_error(StatusCode::InternalServerError, format!("unable to add to index: {}", e.message())));
+                return Err(actix_web::error::ErrorInternalServerError(format!(
+                    "unable to add to index: {}",
+                    e.message()
+                )));
             }
         }
     } else {
-        let reference = repo.find_reference(format!("refs/heads/{}", DEFAULT_BRANCH).as_str()).unwrap();
+        let reference = repo
+            .find_reference(format!("refs/heads/{}", DEFAULT_BRANCH).as_str())
+            .unwrap();
         let diff = repo
-            .diff_tree_to_workdir_with_index(Some(&reference.peel_to_commit().unwrap().tree().unwrap()), None).unwrap();
+            .diff_tree_to_workdir_with_index(
+                Some(&reference.peel_to_commit().unwrap().tree().unwrap()),
+                None,
+            )
+            .unwrap();
 
         for diff_delta in diff.deltas().into_iter() {
             let file_path = diff_delta.old_file().path().unwrap();
@@ -53,7 +71,10 @@ pub async fn ctrl_stage(mut req: Request<Config>) -> tide::Result {
             }
 
             if let Err(e) = index.remove_path(file_path) {
-                return Ok(http_error(StatusCode::InternalServerError, format!("could not remove from index: {}", e.message())));
+                return Err(actix_web::error::ErrorInternalServerError(format!(
+                    "could not remove from index: {}",
+                    e.message()
+                )));
             }
         }
     }
@@ -61,9 +82,12 @@ pub async fn ctrl_stage(mut req: Request<Config>) -> tide::Result {
     match index.write() {
         Ok(()) => {}
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("could not remove from index: {}", e.message())));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "could not remove from index: {}",
+                e.message()
+            )));
         }
     }
 
-    Ok(Response::builder(StatusCode::NoContent).build())
+    Ok(HttpResponse::NoContent().finish())
 }

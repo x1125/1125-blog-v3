@@ -6,11 +6,6 @@ pub const DEFAULT_BRANCH: &str = "main";
 pub const REMOTE_NAME: &str = "ssh";
 pub const REF_NAME: &str = "refs/heads/main";
 
-#[derive(Debug, Clone)]
-pub struct ConfigError {
-    pub message: String,
-}
-
 #[derive(Clone)]
 pub struct Config {
     pub working_path: String,
@@ -19,7 +14,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Result<Self, ConfigError> {
+    pub fn new() -> Result<Self, String> {
         let working_path = path_from_env("WORKING_PATH")?;
         let token = path_from_env("TOKEN")?;
         let git_ssh_key_path = path_from_env("GIT_SSH_KEY_PATH")?;
@@ -40,24 +35,14 @@ impl Config {
     }
 }
 
-pub trait ConfigType {
-    fn get_token(&self) -> String;
-}
-
-impl ConfigType for Config {
-    fn get_token(&self) -> String {
-        return self.token.to_owned();
-    }
-}
-
-fn get_required_env(name: &str) -> Result<String, ConfigError> {
+fn get_required_env(name: &str) -> Result<String, String> {
     match env::var(name) {
         Ok(env_val) => Ok(env_val),
-        Err(_) => Err(ConfigError { message: format!("{} environment variable is missing", name).to_string() })
+        Err(_) => Err(format!("{} environment variable is missing", name).to_string()),
     }
 }
 
-fn path_from_env(name: &str) -> Result<String, ConfigError> {
+fn path_from_env(name: &str) -> Result<String, String> {
     let relative_path = get_required_env(name)?;
     let expanded_path = shellexpand::full(&relative_path).unwrap().into_owned();
     Ok(expanded_path)

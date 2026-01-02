@@ -1,27 +1,32 @@
 use crate::blog::config::Config;
-use crate::blog::error::http_error;
+use actix_web::{web, HttpResponse, Responder};
+use serde::Deserialize;
 use std::fs;
 use std::path::Path;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
 
-#[derive(Debug, Deserialize)]
-struct NewFolder {
+#[derive(Deserialize)]
+pub struct NewFolder {
     folder: String,
 }
 
-pub async fn ctrl_new_folder(mut req: Request<Config>) -> tide::Result {
-    let NewFolder { folder } = req.body_json().await?;
+pub async fn ctrl_new_folder(
+    runtime: web::Data<Config>,
+    new_folder: web::Json<NewFolder>,
+) -> actix_web::Result<impl Responder> {
+    let folder = new_folder.folder.clone();
 
-    let path_str = format!("{}/{}", req.state().get_input_path().to_string_lossy(), folder);
+    let path_str = format!("{}/{}", runtime.get_input_path().to_string_lossy(), folder);
     let path = Path::new(path_str.as_str());
     if path.exists() {
-        return Ok(Response::builder(StatusCode::Conflict).build());
+        return Ok(HttpResponse::Conflict().finish());
     }
 
     if let Err(e) = fs::create_dir(path) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to create dir: {}", e)));
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to create dir: {}",
+            e
+        )));
     }
 
-    Ok(Response::builder(StatusCode::NoContent).build())
+    Ok(HttpResponse::NoContent().finish())
 }

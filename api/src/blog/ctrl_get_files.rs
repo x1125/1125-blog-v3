@@ -1,21 +1,20 @@
 use crate::blog::utils::{find_files, get_entries, Content};
+use actix_web::http::header::ContentType;
+use actix_web::{web, HttpResponse, Responder};
 use serde_json::json;
-use tide::http::mime;
-use tide::{Request, Response, StatusCode};
 
 use crate::Config;
 
-pub async fn ctrl_get_files(req: Request<Config>) -> tide::Result {
-    let path = req.state().get_input_path();
+pub async fn ctrl_get_files(runtime: web::Data<Config>) -> actix_web::Result<impl Responder> {
+    let path = runtime.get_input_path();
     let mut files = find_files(&path, None);
     let (files, unknown_files) = get_entries(&mut files);
-    let content = Content {
+    let content = json!(Content {
         entries: files,
         unknown_entries: unknown_files,
-    };
+    });
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(json!(content))
-        .content_type(mime::JSON)
-        .build())
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::json())
+        .body(content.to_string()))
 }

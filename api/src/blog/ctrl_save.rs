@@ -1,21 +1,30 @@
 use crate::blog::config::Config;
-use crate::blog::error::http_error;
+use actix_web::{web, HttpResponse, Responder};
+use serde::Deserialize;
 use std::fs;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
 
-#[derive(Debug, Deserialize)]
-struct SaveData {
+#[derive(Deserialize)]
+pub struct SaveData {
     file: String,
     content: String,
 }
 
-pub async fn ctrl_save(mut req: Request<Config>) -> tide::Result {
-    let SaveData { file, content } = req.body_json().await?;
+pub async fn ctrl_save(
+    runtime: web::Data<Config>,
+    save_data: web::Json<SaveData>,
+) -> actix_web::Result<impl Responder> {
+    let file = save_data.file.clone();
+    let content = save_data.content.clone();
 
-    if let Err(e) = fs::write(format!("{}/{}", req.state().get_input_path().to_string_lossy(), file), content) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to save: {}", e)));
+    if let Err(e) = fs::write(
+        format!("{}/{}", runtime.get_input_path().to_string_lossy(), file),
+        content,
+    ) {
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to save: {}",
+            e
+        )));
     }
 
-    Ok(Response::builder(StatusCode::NoContent).build())
+    Ok(HttpResponse::NoContent().finish())
 }

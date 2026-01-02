@@ -1,59 +1,72 @@
 use crate::blog::config::Config;
-use crate::blog::error::http_error;
+use actix_web::{web, HttpResponse, Responder};
 use base64::engine::general_purpose;
 use base64::Engine;
+use serde::Deserialize;
 use std::fs;
 use std::path::Path;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
 
-#[derive(Debug, Deserialize)]
-struct UploadData {
+#[derive(Deserialize)]
+pub struct UploadData {
     name: String,
     size: i64,
     content: String,
 }
 
-pub async fn ctrl_upload(mut req: Request<Config>) -> tide::Result {
+pub async fn ctrl_upload(
+    runtime: web::Data<Config>,
+    upload_data: web::Json<UploadData>,
+) -> actix_web::Result<impl Responder> {
     // body_form doesn't seem to work with file uploads...
-    let UploadData {
-        name,
-        size,
-        content,
-    } = req.body_json().await?;
+    // TODO: check again with actix
+    let name = upload_data.name.clone();
+    let size = upload_data.size;
+    let content = upload_data.content.clone();
 
-    let decoded_content = general_purpose::STANDARD.decode(content)?;
+    let decoded_content = match general_purpose::STANDARD.decode(content) {
+        Ok(d) => d,
+        Err(e) => {
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "unable to decode content: {}",
+                e
+            )))
+        }
+    };
 
-    let path_str = format!(
-        "{}/{}",
-        req.state().get_input_path().to_string_lossy(),
-        name
-    );
+    let path_str = format!("{}/{}", runtime.get_input_path().to_string_lossy(), name);
     let path = Path::new(path_str.as_str());
     if path.exists() {
-        return Ok(Response::builder(StatusCode::Conflict).build());
+        return Err(actix_web::error::ErrorConflict("file exists"));
     }
 
     match path.parent() {
         Some(p) => {
             if !p.exists() {
                 if let Err(e) = fs::create_dir(p) {
-                    return Ok(http_error(StatusCode::InternalServerError, format!("unable to create dir: {}", e)));
+                    return Err(actix_web::error::ErrorInternalServerError(format!(
+                        "unable to create dir: {}",
+                        e
+                    )));
                 }
             }
         }
         None => {
-            return Ok(http_error(StatusCode::InternalServerError, "Invalid directory"));
+            return Err(actix_web::error::ErrorInternalServerError(
+                "Invalid directory",
+            ));
         }
     }
 
     if size != decoded_content.len() as i64 {
-        return Ok(Response::builder(StatusCode::UnprocessableEntity).build());
+        return Err(actix_web::error::ErrorUnprocessableEntity("size mismatch"));
     }
 
     if let Err(e) = fs::write(path, decoded_content) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to write: {}", e)));
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to write: {}",
+            e
+        )));
     }
 
-    Ok(Response::builder(StatusCode::Created).build())
+    Ok(HttpResponse::Created().finish())
 }

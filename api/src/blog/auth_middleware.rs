@@ -1,52 +1,34 @@
-use crate::blog::config::ConfigType;
-use tide::http::mime;
-use tide::{Middleware, Next, Request, Response, StatusCode};
+use crate::blog::config::Config;
+use actix_web::body::MessageBody;
+use actix_web::dev::{ServiceRequest, ServiceResponse};
+use actix_web::error::ErrorUnauthorized;
+use actix_web::middleware::Next;
+use actix_web::web::Data;
+use actix_web::Error;
 
-const AUTH_HEADER_NAME: &str = "Authorization";
-
-pub struct AuthMiddleware {}
-
-#[async_trait::async_trait]
-impl<State> Middleware<State> for AuthMiddleware
-where
-    State: Clone + Send + Sync + ConfigType + 'static,
-{
-    async fn handle(&self, req: Request<State>, next: Next<'_, State>) -> tide::Result {
-        if !req.url().path().starts_with("/api/") {
-            return Ok(next.run(req).await);
-        }
-
-        let auth_header = req.header(AUTH_HEADER_NAME);
-        if auth_header.is_none() {
-            return Ok(unauthorized("no auth header"));
-        }
-        let header_value: Vec<_> = auth_header.unwrap().into_iter().collect();
-
-        if header_value.is_empty() {
-            return Ok(unauthorized("empty auth header"));
-        }
-
-        if header_value.len() > 1 {
-            return Ok(unauthorized("multiple auth headers"));
-        }
-
-        let value = header_value.get(0).unwrap().to_string();
-        if !value.starts_with("Token ") {
-            return Ok(unauthorized("invalid token type"));
-        }
-
-        let token = value.replace("Token ", "");
-        if token != req.state().get_token() {
-            return Ok(unauthorized("invalid token"));
-        }
-
-        Ok(next.run(req).await)
+pub(crate) async fn auth_middleware(
+    req: ServiceRequest,
+    next: Next<impl MessageBody>,
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    if !req.path().starts_with("/api/") {
+        return next.call(req).await;
     }
-}
 
-fn unauthorized(message: &str) -> Response {
-    Response::builder(StatusCode::Unauthorized)
-        .body(message)
-        .content_type(mime::PLAIN)
-        .build()
+    let config: &Data<Config> = match req.app_data() {
+        Some(config) => config,
+        None => {
+            return Err(ErrorUnauthorized("missing runtime"));
+        }
+    };
+
+    let api_key = config.token.clone();
+    let req_api_key: String = match req.headers().get("Authorization") {
+        Some(api_key) => api_key.to_str().unwrap().replace("Token ", "").to_string(),
+        None => String::new(),
+    };
+
+    if api_key != req_api_key {
+        return Err(ErrorUnauthorized("missing/wrong token"));
+    }
+    next.call(req).await
 }

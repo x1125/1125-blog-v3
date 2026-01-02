@@ -1,29 +1,37 @@
 use crate::blog::config::{Config, DEFAULT_BRANCH};
-use crate::blog::error::http_error;
+use actix_web::{web, HttpResponse, Responder};
 use git2::Repository;
-use tide::prelude::*;
-use tide::{Request, Response, StatusCode};
+use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-struct Commit {
+#[derive(Deserialize)]
+pub struct Commit {
     message: String,
 }
 
-pub async fn ctrl_commit(mut req: Request<Config>) -> tide::Result {
-    let Commit { message } = req.body_json().await?;
-
-    let repo_path = req.state().get_input_path();
+pub async fn ctrl_commit(
+    runtime: web::Data<Config>,
+    commit: web::Json<Commit>,
+) -> actix_web::Result<impl Responder> {
+    let message = commit.message.clone();
+    
+    let repo_path = runtime.get_input_path();
     let repo = match Repository::open(repo_path) {
         Ok(repo) => repo,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("failed to open: {}", e)));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "failed to open: {}",
+                e
+            )));
         }
     };
 
     let signature = match repo.signature() {
         Ok(signature) => signature,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("missing signature: {}", e)));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "missing signature: {}",
+                e
+            )));
         }
     };
 
@@ -31,7 +39,10 @@ pub async fn ctrl_commit(mut req: Request<Config>) -> tide::Result {
     let tree = match index.write_tree() {
         Ok(tree) => tree,
         Err(e) => {
-            return Ok(http_error(StatusCode::InternalServerError, format!("could not write index to tree: {}", e)));
+            return Err(actix_web::error::ErrorInternalServerError(format!(
+                "could not write index to tree: {}",
+                e
+            )));
         }
     };
 
@@ -46,8 +57,11 @@ pub async fn ctrl_commit(mut req: Request<Config>) -> tide::Result {
         &repo.find_tree(tree).unwrap(),
         &[&commit],
     ) {
-        return Ok(http_error(StatusCode::InternalServerError, format!("unable to push to remote: {}", e.message())));
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to push to remote: {}",
+            e.message()
+        )));
     }
 
-    Ok(Response::builder(StatusCode::NoContent).build())
+    Ok(HttpResponse::NoContent().finish())
 }

@@ -1,13 +1,17 @@
 mod blog;
 
+use actix_files::Files;
+use actix_web::dev::Server;
+use actix_web::middleware::from_fn;
+use actix_web::{web, App, HttpServer};
 use clap::Command;
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use std::env;
 use std::path::Path;
 use std::process;
 use tera::Tera;
 
-use crate::blog::auth_middleware::AuthMiddleware;
-use tide_rustls::TlsListener;
+use crate::blog::auth_middleware::auth_middleware;
 
 use crate::blog::config::Config;
 use crate::blog::ctrl_commit::ctrl_commit;
@@ -27,11 +31,11 @@ use crate::blog::ctrl_stage::ctrl_stage;
 use crate::blog::ctrl_upload::ctrl_upload;
 use crate::blog::generator::generate_all;
 
-#[async_std::main]
+#[actix_web::main]
 async fn main() {
     let config = match Config::new() {
         Ok(config) => config,
-        Err(error) => panic!("Unable to generate config: {}", error.message),
+        Err(e) => panic!("Unable to generate config: {}", e),
     };
 
     if !Path::new(config.working_path.as_str()).exists() {
@@ -54,17 +58,22 @@ async fn main() {
 
     if let Some(_) = matches.subcommand_matches("generate") {
         if let Err(e) = generate_all(&config, &tera) {
-            panic!("Unable to generate file: {:?}", e.message)
+            panic!("Unable to generate file: {:?}", e)
         }
         return;
     }
 
     if let Some(_) = matches.subcommand_matches("webserver") {
-        webserver(config).await;
+        match run_web_server(config) {
+            Ok(server) => {
+                _ = server.await;
+            },
+            Err(e) => panic!("Unable to start webserver: {}", e),
+        }
     }
 }
 
-async fn webserver(config: Config) {
+fn run_web_server(config: Config) -> Result<Server, std::io::Error> {
     let working_path = config.working_path.clone();
     if !Path::new(working_path.as_str()).exists() {
         eprintln!(
@@ -74,42 +83,45 @@ async fn webserver(config: Config) {
         process::exit(1);
     }
 
-    let mut app = tide::with_state(config);
-    if let Err(e) = app.at("/").serve_dir(working_path) {
-        eprintln!("error on serve_dir: {}", e)
-    }
-    app.with(AuthMiddleware {});
-    app.at("/api/files").get(ctrl_get_files);
-    app.at("/api/changes").get(ctrl_get_changes);
-    app.at("/api/preview").post(ctrl_get_preview);
-    app.at("/api/file/new").post(ctrl_new_file);
-    app.at("/api/folder/new").post(ctrl_new_folder);
-    app.at("/api/stage").post(ctrl_stage);
-    app.at("/api/revert").post(ctrl_revert);
-    app.at("/api/upload").post(ctrl_upload);
-    app.at("/api/save").post(ctrl_save);
-    app.at("/api/rename").post(ctrl_rename);
-    app.at("/api/delete").post(ctrl_delete);
-    app.at("/api/commit").post(ctrl_commit);
-    app.at("/api/generate").post(ctrl_generate);
-    app.at("/api/push_remote").post(ctrl_push_remote);
-    app.at("/api/pull_remote").post(ctrl_pull_remote);
+    let runtime_data = web::Data::new(config);
+    let server = HttpServer::new(move || {
+        App::new()
+            .app_data(runtime_data.clone())
+            .route("/api/files", web::get().to(ctrl_get_files))
+            .route("/api/changes", web::get().to(ctrl_get_changes))
+            .route("/api/preview", web::post().to(ctrl_get_preview))
+            .route("/api/file/new", web::post().to(ctrl_new_file))
+            .route("/api/folder/new", web::post().to(ctrl_new_folder))
+            .route("/api/stage", web::post().to(ctrl_stage))
+            .route("/api/revert", web::post().to(ctrl_revert))
+            .route("/api/upload", web::post().to(ctrl_upload))
+            .route("/api/save", web::post().to(ctrl_save))
+            .route("/api/rename", web::post().to(ctrl_rename))
+            .route("/api/delete", web::post().to(ctrl_delete))
+            .route("/api/commit", web::post().to(ctrl_commit))
+            .route("/api/generate", web::post().to(ctrl_generate))
+            .route("/api/push_remote", web::post().to(ctrl_push_remote))
+            .route("/api/pull_remote", web::post().to(ctrl_pull_remote))
+            .wrap(from_fn(auth_middleware))
+            .service(
+                Files::new("/", runtime_data.working_path.as_str())
+                    .index_file("index.html")
+                    .prefer_utf8(true),
+            )
+    });
 
     let listen = env::var("LISTEN").unwrap_or(String::from("127.0.0.1:8080"));
-    let tide_cert_path = env::var("TIDE_CERT_PATH").unwrap_or(String::from(""));
-    let tide_key_path = env::var("TIDE_KEY_PATH").unwrap_or(String::from(""));
+    let ssl_cert_path = env::var("SSL_CERT_PATH").unwrap_or(String::from(""));
+    let ssl_key_path = env::var("SSL_KEY_PATH").unwrap_or(String::from(""));
 
-    if tide_cert_path.len() > 0 && tide_key_path.len() > 0 {
-        if let Err(e) = app.listen(TlsListener::build()
-                                       .addrs(listen)
-                                       .cert(tide_cert_path)
-                                       .key(tide_key_path),
-        ).await {
-            eprintln!("unable to start webserver: {}", e)
-        }
+    if ssl_cert_path.len() > 0 && ssl_key_path.len() > 0 {
+        let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
+        builder
+            .set_private_key_file(ssl_key_path, SslFiletype::PEM)?;
+        builder.set_certificate_chain_file(ssl_cert_path)?;
+
+        Ok(server.bind_openssl(listen, builder)?.run())
     } else {
-        if let Err(e) = app.listen(listen).await {
-            eprintln!("unable to start webserver: {}", e)
-        }
+        Ok(server.bind(listen)?.run())
     }
 }
