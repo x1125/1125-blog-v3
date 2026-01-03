@@ -4,7 +4,7 @@ use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::MultipartForm;
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
-use std::fs;
+use std::fs::{copy, create_dir, remove_file};
 use std::path::Path;
 
 #[derive(Debug, Deserialize)]
@@ -36,7 +36,7 @@ pub async fn ctrl_upload(
     match path.parent() {
         Some(p) => {
             if !p.exists() {
-                if let Err(e) = fs::create_dir(p) {
+                if let Err(e) = create_dir(p) {
                     return Err(actix_web::error::ErrorInternalServerError(format!(
                         "unable to create dir: {}",
                         e
@@ -51,9 +51,18 @@ pub async fn ctrl_upload(
         }
     }
 
-    if let Err(e) = form.file.file.persist(path) {
+    // file.persist() doesn't work, since it does a move
+    // and fails due to cross fs (/tmp is tmpfs)
+    // see: https://github.com/rwf2/Rocket/issues/1600
+    if let Err(e) = copy(form.file.file.path(), &path) {
         return Err(actix_web::error::ErrorInternalServerError(format!(
-            "unable to write: {}",
+            "unable to copy uploaded file: {}",
+            e
+        )));
+    }
+    if let Err(e) = remove_file(form.file.file.path()) {
+        return Err(actix_web::error::ErrorInternalServerError(format!(
+            "unable to remove temp file: {}",
             e
         )));
     }
