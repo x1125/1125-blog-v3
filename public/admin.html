@@ -177,29 +177,42 @@
             options.headers['Authorization'] = `Token ${password}`;
 
             if (options.hasOwnProperty('body')) {
-                options.headers['Content-Type'] = 'application/json';
+                if (!(options['body'] instanceof FormData)) {
+                    options.headers['Content-Type'] = 'application/json';
+                }
             }
 
             return fetch(path, options)
                 .then(res => {
+                    // bad auth, try again
                     if (res.status === 401) {
                         retryCount++;
                         askPassword();
                         return apiRequest(path, options, expectCode);
                     }
 
+                    // unexpected response; trap into catch below
                     if (res.status !== expectCode) {
-                        retryCount++;
-                        return res.text()
-                            .then((data) => {
-                                throw new Error(`Unexpected response: ${res.status}: ${data}`);
-                            }).catch(() => {
-                                throw new Error(`Unexpected response: ${res.status} - ${res.statusText}`);
-                            });
+                        retryCount = 0;
+                        throw {
+                            error: new Error("Unexpected response"),
+                            response: res,
+                        };
                     }
 
+                    // expected response; return promise
                     retryCount = 0;
                     return res;
+                }).catch((error) => {
+                    if (error.hasOwnProperty('response')) {
+                        error['response'].text()
+                            .then(text => {
+                                console.error(text);
+                            }).catch((e) => {
+                                console.error(`unable to get response: ${e}`);
+                        })
+                    }
+                    throw new Error(`Unexpected response: ${error['response'].status} - ${error['response'].statusText} (check logs)`);
                 });
         };
 
@@ -273,7 +286,7 @@
                 method: 'POST',
                 body: JSON.stringify({'file': file, 'content': content}),
             }, 204).then((response) => {
-                document.getElementById('last-save').innerText = ` (last saved ${new Date().toISOString()})`;
+                    document.getElementById('last-save').innerText = ` (last saved ${new Date().toISOString()})`;
                 }
             ).catch(
                 (err) => alert(err)
@@ -294,29 +307,27 @@
             let successfulUploads = 0;
             [].forEach.call(e.target.files, function (file) {
                 const targetFile = targetDir + '/' + file.name;
+                const json = JSON.stringify({'name': targetFile});
+                const blob = new Blob([json], {
+                    type: 'application/json'
+                });
 
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    apiRequest(`${BASE}/upload`, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            'content': btoa(String.fromCharCode(...new Uint8Array(e.target.result))),
-                            'name': targetFile,
-                            'size': file.size,
-                        })
-                    }, 201).then((response) => {
-                        successfulUploads += 1;
-                    }).catch(
-                        (err) => alert(err)
-                    ).finally(() => {
+                let form = new FormData();
+                form.append('file', file);
+                form.append('json', blob);
+                apiRequest(`${BASE}/upload`, {
+                    method: 'POST',
+                    body: form
+                }, 201).then((response) => {
+                    successfulUploads += 1;
+                }).catch((err) => alert(err))
+                    .finally(() => {
                         if (successfulUploads === uploadCount) {
                             location.reload();
                         }
                         uploadButton.innerText = 'Upload';
                         uploadButton.removeAttribute('disabled');
-                    });
-                };
-                reader.readAsArrayBuffer(file);
+                    })
             });
         };
 

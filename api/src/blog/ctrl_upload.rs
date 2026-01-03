@@ -1,39 +1,33 @@
 use crate::blog::config::Config;
+use actix_multipart::form::json::Json;
+use actix_multipart::form::tempfile::TempFile;
+use actix_multipart::form::MultipartForm;
 use actix_web::{web, HttpResponse, Responder};
-use base64::engine::general_purpose;
-use base64::Engine;
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
 
-#[derive(Deserialize)]
-pub struct UploadData {
+#[derive(Debug, Deserialize)]
+struct Metadata {
     name: String,
-    size: i64,
-    content: String,
+}
+
+#[derive(MultipartForm)]
+pub struct UploadForm {
+    #[multipart(limit = "100MB")]
+    file: TempFile,
+    json: Json<Metadata>,
 }
 
 pub async fn ctrl_upload(
     runtime: web::Data<Config>,
-    upload_data: web::Json<UploadData>,
+    MultipartForm(form): MultipartForm<UploadForm>,
 ) -> actix_web::Result<impl Responder> {
-    // body_form doesn't seem to work with file uploads...
-    // TODO: check again with actix
-    let name = upload_data.name.clone();
-    let size = upload_data.size;
-    let content = upload_data.content.clone();
-
-    let decoded_content = match general_purpose::STANDARD.decode(content) {
-        Ok(d) => d,
-        Err(e) => {
-            return Err(actix_web::error::ErrorInternalServerError(format!(
-                "unable to decode content: {}",
-                e
-            )))
-        }
-    };
-
-    let path_str = format!("{}/{}", runtime.get_input_path().to_string_lossy(), name);
+    let path_str = format!(
+        "{}/{}",
+        runtime.get_input_path().to_string_lossy(),
+        form.json.name
+    );
     let path = Path::new(path_str.as_str());
     if path.exists() {
         return Err(actix_web::error::ErrorConflict("file exists"));
@@ -57,11 +51,7 @@ pub async fn ctrl_upload(
         }
     }
 
-    if size != decoded_content.len() as i64 {
-        return Err(actix_web::error::ErrorUnprocessableEntity("size mismatch"));
-    }
-
-    if let Err(e) = fs::write(path, decoded_content) {
+    if let Err(e) = form.file.file.persist(path) {
         return Err(actix_web::error::ErrorInternalServerError(format!(
             "unable to write: {}",
             e
